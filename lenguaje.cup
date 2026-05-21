@@ -1,0 +1,326 @@
+import java_cup.runtime.*;
+import java.io.*;
+import java.util.*;
+
+parser code {:
+    // Pila de tablas de simbolos
+    static java.util.Stack<java.util.HashMap<String, String[]>> pilaTablas = new java.util.Stack<>();
+    static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
+    
+    static int contadorBloques = 0;
+    static int contadorSwitch = 0;
+    static int contadorIf = 0;
+    static int contadorElse = 0;
+    static int contadorWhile = 0;
+    static String nombreBloqueActual = "BLOQUE";
+
+    static int switchActual = 0;
+    static int casoActual = 0;
+
+    // Contador de errores sintacticos
+    public static int erroresSintacticos = 0;
+    
+    // Lista para guardar todas las tablas antes de imprimir
+    static java.util.ArrayList<AmbitoInfo> todasLasTablas = new java.util.ArrayList<>();
+    
+    // Clase para guardar la informacion de cada ambito
+    static class AmbitoInfo {
+        String nombre;
+        java.util.HashMap<String, String[]> tabla;
+        int nivel;
+        
+        AmbitoInfo(String nombre, java.util.HashMap<String, String[]> tabla, int nivel) {
+            this.nombre = nombre;
+            this.tabla = tabla;
+            this.nivel = nivel;
+        }
+    }
+
+    public static void pushScope(String nombre) {
+        pilaTablas.push(new java.util.HashMap<>());
+        nombresAmbitos.push(nombre);
+    }
+    
+    public static void popScope() {
+        if (!pilaTablas.isEmpty()) {
+            java.util.HashMap<String, String[]> ambito = pilaTablas.pop();
+            String nombre = nombresAmbitos.pop();
+            int nivel = nombresAmbitos.size();
+            
+            // GUARDAR en lugar de imprimir
+            todasLasTablas.add(new AmbitoInfo(nombre, ambito, nivel));
+        }
+    }
+    
+    // Llamar al final del programa para imprimir todo ordenado
+    public static void imprimirTodasLasTablas() {
+        // Imprimir en orden inverso (del mas externo al mas interno)
+        for (int i = todasLasTablas.size() - 1; i >= 0; i--) {
+            AmbitoInfo a = todasLasTablas.get(i);
+            
+            String indentacion = "";
+            for (int j = 0; j < a.nivel; j++) {
+                indentacion += "               ";
+            }
+            
+            System.out.println("\n" + indentacion + "=== TABLA DE SIMBOLOS: " + a.nombre + " ===");
+            imprimirTabla(a.tabla, indentacion + "  ");
+        }
+        todasLasTablas.clear(); // Limpiar por si acaso
+    }
+    
+    public static void agregarSimbolo(String nombre, String tipo, int linea) {
+        if (pilaTablas.isEmpty()) return;
+        java.util.HashMap<String, String[]> ambito = pilaTablas.peek();
+        if (!ambito.containsKey(nombre)) {
+            ambito.put(nombre, new String[]{tipo, String.valueOf(linea)});
+        }
+    }
+    
+    private static void imprimirTabla(java.util.HashMap<String, String[]> tabla, String indentacion) {
+        if (tabla.isEmpty()) {
+            System.out.println(indentacion + "(sin variables)");
+            return;
+        }
+        System.out.println(indentacion + String.format("%-20s %-10s %s", "Variable", "Tipo", "Linea"));
+        System.out.println(indentacion + String.format("%-20s %-10s %s", "--------", "----", "-----"));
+        for (java.util.Map.Entry<String, String[]> e : tabla.entrySet()) {
+            System.out.println(indentacion + String.format("%-20s %-10s %s", e.getKey(), e.getValue()[0], e.getValue()[1]));
+        }
+    }
+    
+    public void syntax_error(java_cup.runtime.Symbol s) {
+        erroresSintacticos++;
+        System.err.println("[ERROR SINTACTICO] Linea " + s.left + ", columna " + s.right
+                + ": token inesperado -> '" + s.value + "'");
+    }
+
+    public void unrecovered_syntax_error(java_cup.runtime.Symbol s) {
+        erroresSintacticos++;
+        System.err.println("[ERROR SINTACTICO IRRECUPERABLE] Linea " + s.left
+                + ": no se pudo continuar el analisis.");
+    }
+:}
+
+/* Terminales */
+terminal PALABRA_MAIN, INT, FLOAT, BOOL, CHAR, STRING;
+terminal IF, ELSE, DO, WHILE, SWITCH, CASE, DEFAULT;
+terminal RETURN, BREAK, CIN, COUT;
+terminal EQUAL, N_EQUAL, LESS_T, LESS_TE, GREATER_T, GREATER_TE;
+terminal ASIGNACION, SEPARADOR, DELIMITADOR_EXP, INICIO_BLOQUE, FIN_BLOQUE;
+terminal INICIO_PARENTESIS, FIN_PARENTESIS, INICIO_INDICE, FIN_INDICE, COMA;
+terminal DOS_PUNTOS, MAS, MENOS, MULTIPLICACION, DIVISION;
+terminal NUMERO_ENTERO, NUMERO_FLOTANTE, NOTACION_CIENTIFICA, FRACCIONARIO;
+terminal CADENA, CARACTER, BOOLEANO, IDENTIFICADOR, EMPTY;
+terminal MODULO, POTENCIA, INCREMENTO, DECREMENTO, OPERADOR_LOGICO_BINARIO, OPERADOR_LOGICO_UNARIO;
+
+/* No terminales */
+non terminal programa, funcion_main, contenido_programa;
+non terminal numero;
+non terminal funcion, lista_funciones, parametros, lista_parametros, parametro, parametro_resto;
+non terminal sentencia, lista_sentencias;
+non terminal declaracion, declaracion_resto, declaracion_variable_resto, lista_valores, valor_lista;
+non terminal asignacion, llamada_funcion_exp, return_sentencia, break_sentencia;
+non terminal cin_sentencia, cout_sentencia, lista_escritura, elemento_escritura;
+non terminal if_sentencia, do_while_sentencia, switch_sentencia;
+non terminal lista_casos, lista_caso_simple, caso, caso_default;
+non terminal expresion, exp_logica, resto_logica;
+non terminal exp_relacional, exp_aritmetica, resto_aritmetica;
+non terminal exp_termino, resto_termino, exp_potencia, resto_potencia;
+non terminal exp_factor, valor;
+non terminal array, acceso_arreglo;
+non terminal argumentos, lista_argumentos, bloque_simple, bloque_inicio;
+non terminal casoConstante, if_cabeza, else_cabeza, while_cabeza;
+
+/* Reglas gramaticales */
+start with programa;
+
+numero ::= NUMERO_ENTERO | NUMERO_FLOTANTE | NOTACION_CIENTIFICA | FRACCIONARIO ;
+
+/* Para case - solo constantes literales (sin variables) */
+casoConstante ::= numero | CADENA | BOOLEANO | CARACTER ;
+
+/* Main */
+programa ::= lista_funciones
+             {: pushScope("GLOBAL (MAIN)"); :}
+             funcion_main
+             {: popScope(); imprimirTodasLasTablas(); :} ;
+
+funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PARENTESIS INICIO_BLOQUE contenido_programa FIN_BLOQUE ;
+contenido_programa ::= lista_sentencias ;
+
+
+/* Funciones  */
+funcion ::= INT    SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | FLOAT  SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | BOOL   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | CHAR   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | STRING SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
+
+lista_funciones ::= funcion lista_funciones | /* vacio */ ;
+parametros ::= lista_parametros | /* vacio */ ;
+lista_parametros ::= parametro | parametro COMA lista_parametros ;
+
+/* FIX: factorizado con parametro_resto para evitar conflictos y reducir repeticion */
+parametro ::= INT    SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "int", idleft); :}
+            | INT    SEPARADOR IDENTIFICADOR:id array parametro_resto {: agregarSimbolo((String)id, "int[]", idleft); :}
+            | FLOAT  SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "float", idleft); :}
+            | BOOL   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "bool", idleft); :}
+            | CHAR   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "char", idleft); :}
+            | STRING SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "string", idleft); :};
+
+parametro_resto ::= /* vacio */ 
+                    | ASIGNACION valor;
+
+
+/* Argumentos */
+argumentos ::= lista_argumentos | /* vacio */ ;
+lista_argumentos ::= expresion | expresion COMA lista_argumentos ;
+
+
+/* Sentencias */
+sentencia ::= declaracion
+            | asignacion
+            | return_sentencia
+            | break_sentencia
+            | if_sentencia
+            | do_while_sentencia
+            | switch_sentencia
+            | cin_sentencia
+            | cout_sentencia
+            | expresion DELIMITADOR_EXP
+            | error DELIMITADOR_EXP;
+
+
+/* Declaraciones */
+declaracion ::= INT SEPARADOR IDENTIFICADOR:id declaracion_resto              {: agregarSimbolo((String)id, "int", idleft); :}
+              | FLOAT SEPARADOR IDENTIFICADOR:id declaracion_resto            {: agregarSimbolo((String)id, "float", idleft); :}
+              | BOOL SEPARADOR IDENTIFICADOR:id declaracion_variable_resto    {: agregarSimbolo((String)id, "bool", idleft); :}
+              | CHAR SEPARADOR IDENTIFICADOR:id declaracion_variable_resto    {: agregarSimbolo((String)id, "char", idleft); :}
+              | STRING SEPARADOR IDENTIFICADOR:id declaracion_variable_resto  {: agregarSimbolo((String)id, "string", idleft); :}
+              | error SEPARADOR IDENTIFICADOR declaracion_resto               {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :};
+
+declaracion_resto ::= declaracion_variable_resto
+                    | array DELIMITADOR_EXP
+                    | array ASIGNACION INICIO_BLOQUE lista_valores FIN_BLOQUE DELIMITADOR_EXP;
+
+declaracion_variable_resto ::= DELIMITADOR_EXP
+            | ASIGNACION expresion DELIMITADOR_EXP;
+
+lista_valores ::= valor_lista | valor_lista COMA lista_valores;
+valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
+
+
+/* Asignacion */
+asignacion ::= IDENTIFICADOR ASIGNACION expresion DELIMITADOR_EXP
+             | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
+             | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
+
+/* Llamada a funcion */
+llamada_funcion_exp ::= IDENTIFICADOR INICIO_PARENTESIS argumentos FIN_PARENTESIS ;
+
+
+/* Return y Break */
+return_sentencia ::= RETURN SEPARADOR expresion DELIMITADOR_EXP
+                   | RETURN error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :};
+
+break_sentencia ::= BREAK DELIMITADOR_EXP ;
+
+
+/* cin y cout */
+cin_sentencia  ::= CIN SEPARADOR IDENTIFICADOR DELIMITADOR_EXP ;
+cout_sentencia ::= COUT SEPARADOR lista_escritura DELIMITADOR_EXP
+                 | COUT error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); :};
+
+lista_escritura ::= elemento_escritura 
+                    | elemento_escritura SEPARADOR lista_escritura;
+
+elemento_escritura ::= IDENTIFICADOR | MENOS numero |numero | CADENA | BOOLEANO | CARACTER | acceso_arreglo ;
+
+
+/* Bloques */
+bloque_inicio ::= INICIO_BLOQUE {: pushScope(nombreBloqueActual); nombreBloqueActual = "BLOQUE"; :} ;
+bloque_simple ::= bloque_inicio lista_sentencias FIN_BLOQUE {: popScope(); :};
+lista_sentencias ::= sentencia lista_sentencias | /* vacio */ ;
+
+
+if_cabeza    ::= IF INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorIf++;    nombreBloqueActual = "IF "    + contadorIf; :} ;
+else_cabeza  ::= ELSE {: contadorElse++;  nombreBloqueActual = "ELSE "  + contadorElse; :} ;
+while_cabeza ::= DO {: contadorWhile++; nombreBloqueActual = "DO-WHILE " + contadorWhile; :} ;
+
+if_sentencia ::= if_cabeza bloque_simple
+               | if_cabeza bloque_simple else_cabeza bloque_simple
+               | IF error bloque_simple {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); :};
+
+do_while_sentencia ::= while_cabeza bloque_simple WHILE  INICIO_PARENTESIS expresion FIN_PARENTESIS DELIMITADOR_EXP ;
+
+switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: popScope(); :}
+                   | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); :};
+
+lista_casos ::= lista_caso_simple caso_default
+                | lista_caso_simple
+                | caso_default;
+
+lista_caso_simple ::= caso lista_caso_simple | caso ;
+
+/* punto s: ~ entre case/default y expresion/identificador */
+caso ::= CASE SEPARADOR casoConstante DOS_PUNTOS {: casoActual++; :} lista_sentencias 
+       | CASE error DOS_PUNTOS lista_sentencias  {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); :};
+
+caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias ;
+
+expresion ::= exp_logica ;
+
+
+exp_logica ::= exp_relacional resto_logica ;
+resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional resto_logica | /* vacio */ ;
+
+
+exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
+                 | LESS_TE    INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
+                 | GREATER_T  INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
+                 | GREATER_TE INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
+                 | EQUAL      INICIO_PARENTESIS expresion COMA expresion FIN_PARENTESIS
+                 | N_EQUAL    INICIO_PARENTESIS expresion COMA expresion FIN_PARENTESIS
+                 | exp_aritmetica;
+
+/* punto g: suma y resta */
+exp_aritmetica ::= exp_termino resto_aritmetica ;
+resto_aritmetica ::= MAS   exp_termino resto_aritmetica
+                    | MENOS exp_termino resto_aritmetica 
+                        | /* vacio */;
+
+exp_termino ::= exp_factor resto_termino ;
+resto_termino ::= MULTIPLICACION exp_factor resto_termino
+                | DIVISION       exp_factor resto_termino
+                | MODULO         exp_factor resto_termino
+                | /* vacio */;
+
+/* punto g: potencia */
+exp_potencia ::= valor resto_potencia ;
+resto_potencia ::= POTENCIA valor resto_potencia | /* vacio */ ;
+
+
+exp_factor ::= MENOS numero
+             | INCREMENTO IDENTIFICADOR
+             | INCREMENTO acceso_arreglo
+             | DECREMENTO IDENTIFICADOR
+             | DECREMENTO acceso_arreglo
+             | OPERADOR_LOGICO_UNARIO exp_factor
+             | exp_potencia;
+
+
+valor ::= numero
+        | IDENTIFICADOR
+        | BOOLEANO
+        | CADENA
+        | CARACTER
+        | acceso_arreglo
+        | llamada_funcion_exp
+        | INICIO_PARENTESIS exp_logica FIN_PARENTESIS;
+
+
+/* Arreglos */
+array ::= INICIO_INDICE expresion FIN_INDICE INICIO_INDICE expresion FIN_INDICE;
+
+acceso_arreglo ::= IDENTIFICADOR INICIO_INDICE exp_aritmetica FIN_INDICE INICIO_INDICE exp_aritmetica FIN_INDICE;

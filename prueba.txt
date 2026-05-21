@@ -1,0 +1,8 @@
+empty~__main__~<| |>|:
+    int~x<-10!
+    int~y<-20!
+    int~z<-30!
+    
+    bool~r1<-equal<|equal<|a,b|>, n_equal<|c,d|>|> !
+:|
+
