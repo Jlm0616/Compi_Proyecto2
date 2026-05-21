@@ -1,7 +1,7 @@
-# Proyecto #1 - Analizador Léxico y Sintáctico
+# Proyecto #2 - Análisis Semántico y Generación Código Intermedio
 
 ## Descripción
-Analizador léxico y sintáctico para un lenguaje imperativo de configuración de chips, implementado con JFlex y CUP.
+
 
 ## Tecnologías
 | Tecnología | Versión |
