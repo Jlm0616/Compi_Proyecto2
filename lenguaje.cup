@@ -3,10 +3,22 @@ import java.io.*;
 import java.util.*;
 
 parser code {:
-    // Pila de tablas de simbolos
-    static java.util.Stack<java.util.HashMap<String, String[]>> pilaTablas = new java.util.Stack<>();
+
+    static class Simbolo {
+        String nombre;
+        String tipo;
+        int linea;
+
+        Simbolo(String nombre, String tipo, int linea) {
+            this.nombre = nombre;
+            this.tipo   = tipo;
+            this.linea  = linea;
+        }
+    }
+
+    static java.util.Stack<java.util.HashMap<String, Simbolo>> pilaTablas = new java.util.Stack<>();
     static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
-    
+
     static int contadorBloques = 0;
     static int contadorSwitch = 0;
     static int contadorIf = 0;
@@ -26,10 +38,10 @@ parser code {:
     // Clase para guardar la informacion de cada ambito
     static class AmbitoInfo {
         String nombre;
-        java.util.HashMap<String, String[]> tabla;
+        java.util.HashMap<String, Simbolo> tabla;
         int nivel;
         
-        AmbitoInfo(String nombre, java.util.HashMap<String, String[]> tabla, int nivel) {
+        AmbitoInfo(String nombre, java.util.HashMap<String, Simbolo> tabla, int nivel) {
             this.nombre = nombre;
             this.tabla = tabla;
             this.nivel = nivel;
@@ -43,7 +55,7 @@ parser code {:
     
     public static void popScope() {
         if (!pilaTablas.isEmpty()) {
-            java.util.HashMap<String, String[]> ambito = pilaTablas.pop();
+            java.util.HashMap<String, Simbolo> ambito = pilaTablas.pop();
             String nombre = nombresAmbitos.pop();
             int nivel = nombresAmbitos.size();
             
@@ -71,21 +83,22 @@ parser code {:
     
     public static void agregarSimbolo(String nombre, String tipo, int linea) {
         if (pilaTablas.isEmpty()) return;
-        java.util.HashMap<String, String[]> ambito = pilaTablas.peek();
+        java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
         if (!ambito.containsKey(nombre)) {
-            ambito.put(nombre, new String[]{tipo, String.valueOf(linea)});
+            ambito.put(nombre, new Simbolo(nombre, tipo, linea));
         }
     }
     
-    private static void imprimirTabla(java.util.HashMap<String, String[]> tabla, String indentacion) {
+    private static void imprimirTabla(java.util.HashMap<String, Simbolo> tabla, String indentacion) {
         if (tabla.isEmpty()) {
             System.out.println(indentacion + "(sin variables)");
             return;
         }
         System.out.println(indentacion + String.format("%-20s %-10s %s", "Variable", "Tipo", "Linea"));
         System.out.println(indentacion + String.format("%-20s %-10s %s", "--------", "----", "-----"));
-        for (java.util.Map.Entry<String, String[]> e : tabla.entrySet()) {
-            System.out.println(indentacion + String.format("%-20s %-10s %s", e.getKey(), e.getValue()[0], e.getValue()[1]));
+        for (java.util.Map.Entry<String, Simbolo> e : tabla.entrySet()) {
+            Simbolo s = e.getValue();
+            System.out.println(indentacion + String.format("%-20s %-10s %s", s.nombre, s.tipo, s.linea));
         }
     }
     
