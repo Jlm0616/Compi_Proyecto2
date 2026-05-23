@@ -1,9 +1,21 @@
+// ===================================================================
+// 1. IMPORTACIONES Y CONFIGURACIÓN INICIAL
+// ===================================================================
+
 import java_cup.runtime.*;
 import java.io.*;
 import java.util.*;
 
+// ===================================================================
+// 2. CÓDIGO DE USUARIO (ACCIONES Y AUXILIARES)
+// ===================================================================
 parser code {:
 
+    // ---------------------------------------------------------------
+    // 2.1 ANÁLISIS SINTÁCTICO (Estructuras de datos para parsing)
+    // ---------------------------------------------------------------
+
+    // Almacena info de una variable: nombre, tipo y linea donde se declara
     static class Simbolo {
         String nombre;
         String tipo;
@@ -16,27 +28,36 @@ parser code {:
         }
     }
 
+    // Pila de tablas de simbolos (un HashMap por cada ambito)
     static java.util.Stack<java.util.HashMap<String, Simbolo>> pilaTablas = new java.util.Stack<>();
+
+    // Pila con los nombres de cada ambito (para reportes)   
     static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
 
+    // Tipo de la variable que se esta declarando actualmente
     static String tipoDeclaracionActual = "";
+
+    // Contadores para nombrar bloques, switch, if, else, do-while
     static int contadorBloques = 0;
     static int contadorSwitch = 0;
     static int contadorIf = 0;
     static int contadorElse = 0;
     static int contadorWhile = 0;
+
+    // Nombre del bloque actual (ej: "IF 1", "SWITCH 2", etc.)
     static String nombreBloqueActual = "BLOQUE";
 
+    // Switch y caso que se estan procesando actualmente
     static int switchActual = 0;
     static int casoActual = 0;
 
     // Contador de errores sintacticos
     public static int erroresSintacticos = 0;
     
-    // Lista para guardar todas las tablas antes de imprimir
+    // Lista que guarda todas las tablas de simbolos para imprimir al final
     static java.util.ArrayList<AmbitoInfo> todasLasTablas = new java.util.ArrayList<>();
     
-    // Clase para guardar la informacion de cada ambito
+    // Guarda la info de un ambito (nombre, tabla y nivel de anidamiento)
     static class AmbitoInfo {
         String nombre;
         java.util.HashMap<String, Simbolo> tabla;
@@ -49,27 +70,22 @@ parser code {:
         }
     }
 
+    // Agrega un nuevo ambito a la pila
     public static void pushScope(String nombre) {
         pilaTablas.push(new java.util.HashMap<>());
         nombresAmbitos.push(nombre);
     }
     
+    // Elimina el ambito actual y lo guarda para imprimir despues
     public static void popScope() {
         if (!pilaTablas.isEmpty()) {
             java.util.HashMap<String, Simbolo> ambito = pilaTablas.pop();
             String nombre = nombresAmbitos.pop();
             int nivel = nombresAmbitos.size();
             
-            // GUARDAR en lugar de imprimir
+            // GUARDAR en todasLasTablas
             todasLasTablas.add(new AmbitoInfo(nombre, ambito, nivel));
         }
-    }
-    
-    public static Simbolo buscarSimbolo(String nombre) {
-        for (java.util.HashMap<String, Simbolo> ambito : pilaTablas) {
-            if (ambito.containsKey(nombre)) return ambito.get(nombre);
-        }
-        return null;
     }
 
     // Llamar al final del programa para imprimir todo ordenado
@@ -88,16 +104,8 @@ parser code {:
         }
         todasLasTablas.clear(); // Limpiar por si acaso
     }
-    
-        public static void verificarTipoAsignacion(String tipoVar, String tipoExp, int linea) {
-        if (tipoVar.equals("error") || tipoExp.equals("error")) return;
-        if (!tipoVar.equals(tipoExp)) {
-            System.err.println("[ERROR SEMANTICO] Línea " + linea
-                + ": tipo incompatible, se esperaba '" + tipoVar
-                + "' pero se encontró '" + tipoExp + "'.");
-        }
-    }
 
+    // Registra una nueva variable en la tabla del ambito actual
     public static void agregarSimbolo(String nombre, String tipo, int linea) {
         if (pilaTablas.isEmpty()) return;
         java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
@@ -108,17 +116,8 @@ parser code {:
             ambito.put(nombre, new Simbolo(nombre, tipo, linea));
         }
     }
-    
-    public static String verificarUso(String nombre, int linea) {
-        Simbolo s = buscarSimbolo(nombre);
-        if (s == null) {
-            System.err.println("[ERROR SEMANTICO] Línea " + linea 
-                + ": variable '" + nombre + "' no fue declarada.");
-            return "error";
-        }
-        return s.tipo;
-    }
 
+    // Muestra el contenido de una tabla de simbolos
     private static void imprimirTabla(java.util.HashMap<String, Simbolo> tabla, String indentacion) {
         if (tabla.isEmpty()) {
             System.out.println(indentacion + "(sin variables)");
@@ -132,16 +131,52 @@ parser code {:
         }
     }
     
+    // Manejador de errores sintacticos (token inesperado)
     public void syntax_error(java_cup.runtime.Symbol s) {
         erroresSintacticos++;
         System.err.println("[ERROR SINTACTICO] Linea " + s.left + ", columna " + s.right
                 + ": token inesperado -> '" + s.value + "'");
     }
 
+    // Manejador de errores sintacticos irrecuperables
     public void unrecovered_syntax_error(java_cup.runtime.Symbol s) {
         erroresSintacticos++;
         System.err.println("[ERROR SINTACTICO IRRECUPERABLE] Linea " + s.left
                 + ": no se pudo continuar el analisis.");
+    }
+
+    // ---------------------------------------------------------------
+    // 2.2 ANÁLISIS SEMÁNTICO (Validaciones)
+    // ---------------------------------------------------------------
+    
+    // Busca un simbolo en toda la pila de tablas (de interna a externa)
+    public static Simbolo buscarSimbolo(String nombre) {
+        for (java.util.HashMap<String, Simbolo> ambito : pilaTablas) {
+            if (ambito.containsKey(nombre)) return ambito.get(nombre);
+        }
+        return null;
+    }
+
+    // Verifica que una variable exista antes de usarla
+    // Retorna su tipo si existe, o "error" si no
+    public static String verificarUso(String nombre, int linea) {
+        Simbolo s = buscarSimbolo(nombre);
+        if (s == null) {
+            System.err.println("[ERROR SEMANTICO] Línea " + linea 
+                + ": variable '" + nombre + "' no fue declarada.");
+            return "error";
+        }
+        return s.tipo;
+    }
+
+    // Compara si dos tipos son compatibles en una asignacion
+    public static void verificarTipoAsignacion(String tipoVar, String tipoExp, int linea) {
+        if (tipoVar.equals("error") || tipoExp.equals("error")) return;
+        if (!tipoVar.equals(tipoExp)) {
+            System.err.println("[ERROR SEMANTICO] Línea " + linea
+                + ": tipo incompatible, se esperaba '" + tipoVar
+                + "' pero se encontró '" + tipoExp + "'.");
+        }
     }
 :}
 
@@ -195,7 +230,6 @@ programa ::= lista_funciones
 funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PARENTESIS INICIO_BLOQUE contenido_programa FIN_BLOQUE ;
 contenido_programa ::= lista_sentencias ;
 
-
 /* Funciones  */
 funcion ::= INT    SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | FLOAT  SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
@@ -203,8 +237,13 @@ funcion ::= INT    SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICI
           | CHAR   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | STRING SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
 
+/*Lista de 0 o mas funciones*/
 lista_funciones ::= funcion lista_funciones | /* vacio */ ;
+
+/* Lista de parametros de una funcion (puede estar vacia) */
 parametros ::= lista_parametros | /* vacio */ ;
+
+/* Lista de parametros separados por coma */
 lista_parametros ::= parametro | parametro COMA lista_parametros ;
 
 /* FIX: factorizado con parametro_resto para evitar conflictos y reducir repeticion */
@@ -215,14 +254,17 @@ parametro ::= INT    SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbol
             | CHAR   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "char", idleft); :}
             | STRING SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "string", idleft); :};
 
+/* Valor por defecto opcional para parametro */
 parametro_resto ::= /* vacio */ 
                     | ASIGNACION valor;
 
-
 /* Argumentos */
-argumentos ::= lista_argumentos | /* vacio */ ;
-lista_argumentos ::= expresion | expresion COMA lista_argumentos ;
 
+/* Lista de argumentos en llamada a funcion (puede estar vacia) */
+argumentos ::= lista_argumentos | /* vacio */ ;
+
+/* Argumentos separados por coma */
+lista_argumentos ::= expresion | expresion COMA lista_argumentos ;
 
 /* Sentencias */
 sentencia ::= declaracion
@@ -236,7 +278,6 @@ sentencia ::= declaracion
             | cout_sentencia
             | expresion DELIMITADOR_EXP
             | error DELIMITADOR_EXP;
-
 
 /* Declaraciones */
 declaracion ::= INT SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :} declaracion_resto
@@ -253,10 +294,12 @@ declaracion_resto ::= declaracion_variable_resto
 declaracion_variable_resto ::= DELIMITADOR_EXP
             | ASIGNACION expresion:e DELIMITADOR_EXP
               {: verificarTipoAsignacion(tipoDeclaracionActual, (String)e, eleft); :};
-              
-lista_valores ::= valor_lista | valor_lista COMA lista_valores;
-valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
 
+/* Lista de valores para inicializar arreglo */              
+lista_valores ::= valor_lista | valor_lista COMA lista_valores;
+
+/* Elemento individual en inicializacion de arreglo (puede ser anidado) */
+valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
 
 /* Asignacion */
 asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP
@@ -264,16 +307,15 @@ asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP
                   verificarTipoAsignacion(tipoVar, (String)e, idleft); :}
              | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
              | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
+
 /* Llamada a funcion */
 llamada_funcion_exp ::= IDENTIFICADOR INICIO_PARENTESIS argumentos FIN_PARENTESIS ;
-
 
 /* Return y Break */
 return_sentencia ::= RETURN SEPARADOR expresion DELIMITADOR_EXP
                    | RETURN error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :};
 
 break_sentencia ::= BREAK DELIMITADOR_EXP ;
-
 
 /* cin y cout */
 cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP
@@ -286,12 +328,10 @@ lista_escritura ::= elemento_escritura
 
 elemento_escritura ::= IDENTIFICADOR | MENOS numero |numero | CADENA | BOOLEANO | CARACTER | acceso_arreglo ;
 
-
 /* Bloques */
 bloque_inicio ::= INICIO_BLOQUE {: pushScope(nombreBloqueActual); nombreBloqueActual = "BLOQUE"; :} ;
 bloque_simple ::= bloque_inicio lista_sentencias FIN_BLOQUE {: popScope(); :};
 lista_sentencias ::= sentencia lista_sentencias | /* vacio */ ;
-
 
 if_cabeza    ::= IF INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorIf++;    nombreBloqueActual = "IF "    + contadorIf; :} ;
 else_cabeza  ::= ELSE {: contadorElse++;  nombreBloqueActual = "ELSE "  + contadorElse; :} ;
@@ -306,24 +346,27 @@ do_while_sentencia ::= while_cabeza bloque_simple WHILE  INICIO_PARENTESIS expre
 switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: popScope(); :}
                    | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); :};
 
+/* Casos del switch incluyendo opcional default */
 lista_casos ::= lista_caso_simple caso_default
                 | lista_caso_simple
                 | caso_default;
 
+/* Lista de uno o mas cases */
 lista_caso_simple ::= caso lista_caso_simple | caso ;
 
-/* punto s: ~ entre case/default y expresion/identificador */
+/* Etiqueta case con su bloque de sentencias. punto s: ~ entre case/default y expresion/identificador */
 caso ::= CASE SEPARADOR casoConstante DOS_PUNTOS {: casoActual++; :} lista_sentencias 
        | CASE error DOS_PUNTOS lista_sentencias  {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); :};
 
+/* Etiqueta default (opcional) */
 caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias ;
 
 expresion ::= exp_logica:e{: RESULT = e; :} ;
 
-
 exp_logica ::= exp_relacional:e resto_logica {: RESULT = e; :} ;
-resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional resto_logica | /* vacio */ ;
 
+/* Operadores logicos binarios en cadena (and, or) */
+resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional resto_logica | /* vacio */ ;
 
 exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
                  | LESS_TE    INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
@@ -335,11 +378,15 @@ exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica COMA exp_aritmeti
 
 /* punto g: suma y resta */
 exp_aritmetica ::= exp_termino:e resto_aritmetica {: RESULT = e; :} ;
+
+/* Operadores de suma y resta en cadena */
 resto_aritmetica ::= MAS   exp_termino resto_aritmetica
                     | MENOS exp_termino resto_aritmetica 
                         | /* vacio */;
 
 exp_termino ::= exp_factor:e resto_termino {: RESULT = e; :} ;
+
+/* Operadores de multiplicacion, division y modulo en cadena */
 resto_termino ::= MULTIPLICACION exp_factor resto_termino
                 | DIVISION       exp_factor resto_termino
                 | MODULO         exp_factor resto_termino
@@ -347,8 +394,9 @@ resto_termino ::= MULTIPLICACION exp_factor resto_termino
 
 /* punto g: potencia */
 exp_potencia ::= valor:e resto_potencia {: RESULT = e; :} ;
-resto_potencia ::= POTENCIA valor resto_potencia | /* vacio */ ;
 
+/* Operador potencia en cadena */
+resto_potencia ::= POTENCIA valor resto_potencia | /* vacio */ ;
 
 exp_factor ::= MENOS numero
              | INCREMENTO IDENTIFICADOR
@@ -359,6 +407,7 @@ exp_factor ::= MENOS numero
              | exp_potencia:e {: RESULT = e; :} ;
 
 
+/* Valores permitidos en expresiones: literales, variables, llamadas, etc */
 valor ::= numero:n {: RESULT = n; :}
         | IDENTIFICADOR:id            {: RESULT = verificarUso((String)id, idleft); :}
         | BOOLEANO                    {: RESULT = "bool"; :}
@@ -368,7 +417,8 @@ valor ::= numero:n {: RESULT = n; :}
         | llamada_funcion_exp         {: RESULT = "int"; :}
         | INICIO_PARENTESIS exp_logica:e FIN_PARENTESIS {: RESULT = e; :} ;
 
-/* Arreglos */
+/* Arreglos bidimensionales */
 array ::= INICIO_INDICE expresion FIN_INDICE INICIO_INDICE expresion FIN_INDICE;
 
+/* Acceso a elemento de arreglo bidimensional */
 acceso_arreglo ::= IDENTIFICADOR INICIO_INDICE exp_aritmetica FIN_INDICE INICIO_INDICE exp_aritmetica FIN_INDICE;
