@@ -1051,7 +1051,10 @@ public class parser extends java_cup.runtime.lr_parser {
     public static void agregarSimbolo(String nombre, String tipo, int linea) {
         if (pilaTablas.isEmpty()) return;
         java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
-        if (!ambito.containsKey(nombre)) {
+        if (ambito.containsKey(nombre)) {
+            System.err.println("[ERROR SEMÁNTICO] Línea " + linea 
+                + ": variable '" + nombre + "' ya fue declarada en este ámbito.");
+        } else {
             ambito.put(nombre, new Simbolo(nombre, tipo, linea));
         }
     }
