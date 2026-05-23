@@ -1031,6 +1031,13 @@ public class parser extends java_cup.runtime.lr_parser {
         }
     }
     
+    public static Simbolo buscarSimbolo(String nombre) {
+        for (java.util.HashMap<String, Simbolo> ambito : pilaTablas) {
+            if (ambito.containsKey(nombre)) return ambito.get(nombre);
+        }
+        return null;
+    }
+
     // Llamar al final del programa para imprimir todo ordenado
     public static void imprimirTodasLasTablas() {
         // Imprimir en orden inverso (del mas externo al mas interno)
@@ -1052,13 +1059,20 @@ public class parser extends java_cup.runtime.lr_parser {
         if (pilaTablas.isEmpty()) return;
         java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
         if (ambito.containsKey(nombre)) {
-            System.err.println("[ERROR SEMÁNTICO] Línea " + linea 
+            System.err.println("[ERROR SEMANTICO] Línea " + linea 
                 + ": variable '" + nombre + "' ya fue declarada en este ámbito.");
         } else {
             ambito.put(nombre, new Simbolo(nombre, tipo, linea));
         }
     }
     
+    public static void verificarUso(String nombre, int linea) {
+        if (buscarSimbolo(nombre) == null) {
+            System.err.println("[ERROR SEMÁNTICO] Línea " + linea 
+                + ": variable '" + nombre + "' no fue declarada.");
+        }
+    }
+
     private static void imprimirTabla(java.util.HashMap<String, Simbolo> tabla, String indentacion) {
         if (tabla.isEmpty()) {
             System.out.println(indentacion + "(sin variables)");
@@ -1796,7 +1810,10 @@ class CUP$parser$actions {
           case 67: // asignacion ::= IDENTIFICADOR ASIGNACION expresion DELIMITADOR_EXP 
             {
               Object RESULT =null;
-
+		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)).left;
+		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)).right;
+		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-3)).value;
+		 verificarUso((String)id, idleft); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("asignacion",17, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1859,7 +1876,10 @@ class CUP$parser$actions {
           case 74: // cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR DELIMITADOR_EXP 
             {
               Object RESULT =null;
-
+		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
+		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
+		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
+		 verificarUso((String)id, idleft); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("cin_sentencia",21, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2457,7 +2477,10 @@ class CUP$parser$actions {
           case 140: // valor ::= IDENTIFICADOR 
             {
               Object RESULT =null;
-
+		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
+		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
+		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
+		 verificarUso((String)id, idleft); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("valor",43, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

@@ -64,6 +64,13 @@ parser code {:
         }
     }
     
+    public static Simbolo buscarSimbolo(String nombre) {
+        for (java.util.HashMap<String, Simbolo> ambito : pilaTablas) {
+            if (ambito.containsKey(nombre)) return ambito.get(nombre);
+        }
+        return null;
+    }
+
     // Llamar al final del programa para imprimir todo ordenado
     public static void imprimirTodasLasTablas() {
         // Imprimir en orden inverso (del mas externo al mas interno)
@@ -92,6 +99,13 @@ parser code {:
         }
     }
     
+    public static void verificarUso(String nombre, int linea) {
+        if (buscarSimbolo(nombre) == null) {
+            System.err.println("[ERROR SEMÁNTICO] Línea " + linea 
+                + ": variable '" + nombre + "' no fue declarada.");
+        }
+    }
+
     private static void imprimirTabla(java.util.HashMap<String, Simbolo> tabla, String indentacion) {
         if (tabla.isEmpty()) {
             System.out.println(indentacion + "(sin variables)");
@@ -228,10 +242,10 @@ valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
 
 
 /* Asignacion */
-asignacion ::= IDENTIFICADOR ASIGNACION expresion DELIMITADOR_EXP
+asignacion ::= IDENTIFICADOR:id ASIGNACION expresion DELIMITADOR_EXP
+               {: verificarUso((String)id, idleft); :}
              | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
              | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
-
 /* Llamada a funcion */
 llamada_funcion_exp ::= IDENTIFICADOR INICIO_PARENTESIS argumentos FIN_PARENTESIS ;
 
@@ -244,7 +258,8 @@ break_sentencia ::= BREAK DELIMITADOR_EXP ;
 
 
 /* cin y cout */
-cin_sentencia  ::= CIN SEPARADOR IDENTIFICADOR DELIMITADOR_EXP ;
+cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP
+                  {: verificarUso((String)id, idleft); :};
 cout_sentencia ::= COUT SEPARADOR lista_escritura DELIMITADOR_EXP
                  | COUT error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); :};
 
@@ -327,7 +342,7 @@ exp_factor ::= MENOS numero
 
 
 valor ::= numero
-        | IDENTIFICADOR
+        | IDENTIFICADOR:id {: verificarUso((String)id, idleft); :}
         | BOOLEANO
         | CADENA
         | CARACTER
