@@ -19,6 +19,7 @@ parser code {:
     static java.util.Stack<java.util.HashMap<String, Simbolo>> pilaTablas = new java.util.Stack<>();
     static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
 
+    static String tipoDeclaracionActual = "";
     static int contadorBloques = 0;
     static int contadorSwitch = 0;
     static int contadorIf = 0;
@@ -88,6 +89,15 @@ parser code {:
         todasLasTablas.clear(); // Limpiar por si acaso
     }
     
+        public static void verificarTipoAsignacion(String tipoVar, String tipoExp, int linea) {
+        if (tipoVar.equals("error") || tipoExp.equals("error")) return;
+        if (!tipoVar.equals(tipoExp)) {
+            System.err.println("[ERROR SEMANTICO] Línea " + linea
+                + ": tipo incompatible, se esperaba '" + tipoVar
+                + "' pero se encontró '" + tipoExp + "'.");
+        }
+    }
+
     public static void agregarSimbolo(String nombre, String tipo, int linea) {
         if (pilaTablas.isEmpty()) return;
         java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
@@ -99,11 +109,14 @@ parser code {:
         }
     }
     
-    public static void verificarUso(String nombre, int linea) {
-        if (buscarSimbolo(nombre) == null) {
-            System.err.println("[ERROR SEMÁNTICO] Línea " + linea 
+    public static String verificarUso(String nombre, int linea) {
+        Simbolo s = buscarSimbolo(nombre);
+        if (s == null) {
+            System.err.println("[ERROR SEMANTICO] Línea " + linea 
                 + ": variable '" + nombre + "' no fue declarada.");
+            return "error";
         }
+        return s.tipo;
     }
 
     private static void imprimirTabla(java.util.HashMap<String, Simbolo> tabla, String indentacion) {
@@ -146,7 +159,7 @@ terminal MODULO, POTENCIA, INCREMENTO, DECREMENTO, OPERADOR_LOGICO_BINARIO, OPER
 
 /* No terminales */
 non terminal programa, funcion_main, contenido_programa;
-non terminal numero;
+non terminal String numero;
 non terminal funcion, lista_funciones, parametros, lista_parametros, parametro, parametro_resto;
 non terminal sentencia, lista_sentencias;
 non terminal declaracion, declaracion_resto, declaracion_variable_resto, lista_valores, valor_lista;
@@ -154,10 +167,10 @@ non terminal asignacion, llamada_funcion_exp, return_sentencia, break_sentencia;
 non terminal cin_sentencia, cout_sentencia, lista_escritura, elemento_escritura;
 non terminal if_sentencia, do_while_sentencia, switch_sentencia;
 non terminal lista_casos, lista_caso_simple, caso, caso_default;
-non terminal expresion, exp_logica, resto_logica;
-non terminal exp_relacional, exp_aritmetica, resto_aritmetica;
-non terminal exp_termino, resto_termino, exp_potencia, resto_potencia;
-non terminal exp_factor, valor;
+non terminal String expresion, exp_logica, resto_logica;
+non terminal String exp_relacional, exp_aritmetica, resto_aritmetica;
+non terminal String exp_termino, resto_termino, exp_potencia, resto_potencia;
+non terminal String exp_factor, valor;
 non terminal array, acceso_arreglo;
 non terminal argumentos, lista_argumentos, bloque_simple, bloque_inicio;
 non terminal casoConstante, if_cabeza, else_cabeza, while_cabeza;
@@ -165,7 +178,10 @@ non terminal casoConstante, if_cabeza, else_cabeza, while_cabeza;
 /* Reglas gramaticales */
 start with programa;
 
-numero ::= NUMERO_ENTERO | NUMERO_FLOTANTE | NOTACION_CIENTIFICA | FRACCIONARIO ;
+numero ::= NUMERO_ENTERO    {: RESULT = "int"; :}
+         | NUMERO_FLOTANTE  {: RESULT = "float"; :}
+         | NOTACION_CIENTIFICA {: RESULT = "float"; :}
+         | FRACCIONARIO     {: RESULT = "float"; :} ;
 
 /* Para case - solo constantes literales (sin variables) */
 casoConstante ::= numero | CADENA | BOOLEANO | CARACTER ;
@@ -223,27 +239,29 @@ sentencia ::= declaracion
 
 
 /* Declaraciones */
-declaracion ::= INT SEPARADOR IDENTIFICADOR:id declaracion_resto              {: agregarSimbolo((String)id, "int", idleft); :}
-              | FLOAT SEPARADOR IDENTIFICADOR:id declaracion_resto            {: agregarSimbolo((String)id, "float", idleft); :}
-              | BOOL SEPARADOR IDENTIFICADOR:id declaracion_variable_resto    {: agregarSimbolo((String)id, "bool", idleft); :}
-              | CHAR SEPARADOR IDENTIFICADOR:id declaracion_variable_resto    {: agregarSimbolo((String)id, "char", idleft); :}
-              | STRING SEPARADOR IDENTIFICADOR:id declaracion_variable_resto  {: agregarSimbolo((String)id, "string", idleft); :}
-              | error SEPARADOR IDENTIFICADOR declaracion_resto               {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :};
+declaracion ::= INT SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :} declaracion_resto
+              | FLOAT SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "float"; agregarSimbolo((String)id, "float", idleft); :} declaracion_resto
+              | BOOL SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "bool"; agregarSimbolo((String)id, "bool", idleft); :} declaracion_variable_resto
+              | CHAR SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "char"; agregarSimbolo((String)id, "char", idleft); :} declaracion_variable_resto
+              | STRING SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "string"; agregarSimbolo((String)id, "string", idleft); :} declaracion_variable_resto
+              | error SEPARADOR IDENTIFICADOR declaracion_resto {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :};
 
 declaracion_resto ::= declaracion_variable_resto
                     | array DELIMITADOR_EXP
                     | array ASIGNACION INICIO_BLOQUE lista_valores FIN_BLOQUE DELIMITADOR_EXP;
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
-            | ASIGNACION expresion DELIMITADOR_EXP;
-
+            | ASIGNACION expresion:e DELIMITADOR_EXP
+              {: verificarTipoAsignacion(tipoDeclaracionActual, (String)e, eleft); :};
+              
 lista_valores ::= valor_lista | valor_lista COMA lista_valores;
 valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
 
 
 /* Asignacion */
-asignacion ::= IDENTIFICADOR:id ASIGNACION expresion DELIMITADOR_EXP
-               {: verificarUso((String)id, idleft); :}
+asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP
+               {: String tipoVar = verificarUso((String)id, idleft);
+                  verificarTipoAsignacion(tipoVar, (String)e, idleft); :}
              | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
              | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
 /* Llamada a funcion */
@@ -300,10 +318,10 @@ caso ::= CASE SEPARADOR casoConstante DOS_PUNTOS {: casoActual++; :} lista_sente
 
 caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias ;
 
-expresion ::= exp_logica ;
+expresion ::= exp_logica:e{: RESULT = e; :} ;
 
 
-exp_logica ::= exp_relacional resto_logica ;
+exp_logica ::= exp_relacional:e resto_logica {: RESULT = e; :} ;
 resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional resto_logica | /* vacio */ ;
 
 
@@ -313,22 +331,22 @@ exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica COMA exp_aritmeti
                  | GREATER_TE INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
                  | EQUAL      INICIO_PARENTESIS expresion COMA expresion FIN_PARENTESIS
                  | N_EQUAL    INICIO_PARENTESIS expresion COMA expresion FIN_PARENTESIS
-                 | exp_aritmetica;
+                 | exp_aritmetica:e {: RESULT = e; :};
 
 /* punto g: suma y resta */
-exp_aritmetica ::= exp_termino resto_aritmetica ;
+exp_aritmetica ::= exp_termino:e resto_aritmetica {: RESULT = e; :} ;
 resto_aritmetica ::= MAS   exp_termino resto_aritmetica
                     | MENOS exp_termino resto_aritmetica 
                         | /* vacio */;
 
-exp_termino ::= exp_factor resto_termino ;
+exp_termino ::= exp_factor:e resto_termino {: RESULT = e; :} ;
 resto_termino ::= MULTIPLICACION exp_factor resto_termino
                 | DIVISION       exp_factor resto_termino
                 | MODULO         exp_factor resto_termino
                 | /* vacio */;
 
 /* punto g: potencia */
-exp_potencia ::= valor resto_potencia ;
+exp_potencia ::= valor:e resto_potencia {: RESULT = e; :} ;
 resto_potencia ::= POTENCIA valor resto_potencia | /* vacio */ ;
 
 
@@ -338,18 +356,17 @@ exp_factor ::= MENOS numero
              | DECREMENTO IDENTIFICADOR
              | DECREMENTO acceso_arreglo
              | OPERADOR_LOGICO_UNARIO exp_factor
-             | exp_potencia;
+             | exp_potencia:e {: RESULT = e; :} ;
 
 
-valor ::= numero
-        | IDENTIFICADOR:id {: verificarUso((String)id, idleft); :}
-        | BOOLEANO
-        | CADENA
-        | CARACTER
-        | acceso_arreglo
-        | llamada_funcion_exp
-        | INICIO_PARENTESIS exp_logica FIN_PARENTESIS;
-
+valor ::= numero:n {: RESULT = n; :}
+        | IDENTIFICADOR:id            {: RESULT = verificarUso((String)id, idleft); :}
+        | BOOLEANO                    {: RESULT = "bool"; :}
+        | CADENA                      {: RESULT = "string"; :}
+        | CARACTER                    {: RESULT = "char"; :}
+        | acceso_arreglo              {: RESULT = "int"; :}
+        | llamada_funcion_exp         {: RESULT = "int"; :}
+        | INICIO_PARENTESIS exp_logica:e FIN_PARENTESIS {: RESULT = e; :} ;
 
 /* Arreglos */
 array ::= INICIO_INDICE expresion FIN_INDICE INICIO_INDICE expresion FIN_INDICE;

@@ -1,4 +1,6 @@
 empty ~ __main__ ~ <| |> |:
-
-    int ~ x <- y !
+    int ~ x <- 5 !
+    int ~ y <- "hola" !
+    int ~ x <- 10 !
+    z <- 3 !
 :|
