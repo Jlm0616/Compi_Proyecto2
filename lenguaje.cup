@@ -1,5 +1,5 @@
 // ===================================================================
-// 1. IMPORTACIONES Y CONFIGURACIÓN INICIAL
+// 1. IMPORTACIONES Y CONFIGURACION INICIAL
 // ===================================================================
 
 import java_cup.runtime.*;
@@ -7,12 +7,12 @@ import java.io.*;
 import java.util.*;
 
 // ===================================================================
-// 2. CÓDIGO DE USUARIO (ACCIONES Y AUXILIARES)
+// 2. CODIGO DE USUARIO (ACCIONES Y AUXILIARES)
 // ===================================================================
 parser code {:
 
     // ---------------------------------------------------------------
-    // 2.1 ANÁLISIS SINTÁCTICO (Estructuras de datos para parsing)
+    // 2.1 ANALISIS SINTACTICO (Estructuras de datos para parsing)
     // ---------------------------------------------------------------
 
     // Almacena info de una variable: nombre, tipo y linea donde se declara
@@ -146,7 +146,7 @@ parser code {:
     }
 
     // ---------------------------------------------------------------
-    // 2.2 ANÁLISIS SEMÁNTICO (Validaciones)
+    // 2.2 ANALISIS SEMANTICO (Validaciones)
     // ---------------------------------------------------------------
     
     // Busca un simbolo en toda la pila de tablas (de interna a externa)
@@ -157,26 +157,34 @@ parser code {:
         return null;
     }
 
-    // Verifica que una variable exista antes de usarla
-    // Retorna su tipo si existe, o "error" si no
+    // Verifica que una variable exista antes de usarla. Retorna su tipo si existe, o "error" si no
     public static String verificarUso(String nombre, int linea) {
         Simbolo s = buscarSimbolo(nombre);
         if (s == null) {
-            System.err.println("[ERROR SEMANTICO] Línea " + linea 
-                + ": variable '" + nombre + "' no fue declarada.");
+            System.err.println("[ERROR SEMANTICO] Linea " + linea + ": variable '" + nombre + "' no fue declarada.");
             return "error";
         }
         return s.tipo;
     }
 
     // Compara si dos tipos son compatibles en una asignacion
-    public static void verificarTipoAsignacion(String tipoVar, String tipoExp, int linea) {
-        if (tipoVar.equals("error") || tipoExp.equals("error")) return;
-        if (!tipoVar.equals(tipoExp)) {
-            System.err.println("[ERROR SEMANTICO] Línea " + linea
-                + ": tipo incompatible, se esperaba '" + tipoVar
-                + "' pero se encontró '" + tipoExp + "'.");
+    public static String validarTipos(String tipo1, String tipo2, String operacion, int linea) {
+        if (tipo1.equals("error") || tipo2.equals("error")) return "error";
+    
+        if (!tipo1.equals(tipo2)) {
+            System.err.println("[ERROR SEMANTICO] Linea " + linea + ": Tipos incompatibles en operacion '" + operacion + "'. " + "Se esperaban dos valores del mismo tipo, pero se encontraron '" + tipo1 + "' y '" + tipo2 + "'.");
+            return "error";
         }
+    
+        // Operaciones relacionales devuelven bool
+        if (operacion.equals("less_t") || operacion.equals("less_te") || 
+            operacion.equals("greather_t") || operacion.equals("greather_te") ||
+            operacion.equals("equal") || operacion.equals("n_equal")) {
+            return "bool";
+        }
+    
+        // Aritmeticas devuelven el mismo tipo
+        return tipo1;
     }
 :}
 
@@ -293,7 +301,7 @@ declaracion_resto ::= declaracion_variable_resto
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
             | ASIGNACION expresion:e DELIMITADOR_EXP
-              {: verificarTipoAsignacion(tipoDeclaracionActual, (String)e, eleft); :};
+              {: validarTipos(tipoDeclaracionActual, e, "asignacion", eleft); :};
 
 /* Lista de valores para inicializar arreglo */              
 lista_valores ::= valor_lista | valor_lista COMA lista_valores;
@@ -304,7 +312,7 @@ valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
 /* Asignacion */
 asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP
                {: String tipoVar = verificarUso((String)id, idleft);
-                  verificarTipoAsignacion(tipoVar, (String)e, idleft); :}
+                  validarTipos(tipoVar, e, "asignacion", idleft); :}
              | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
              | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
 
@@ -363,49 +371,128 @@ caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias ;
 
 expresion ::= exp_logica:e{: RESULT = e; :} ;
 
-exp_logica ::= exp_relacional:e resto_logica {: RESULT = e; :} ;
+exp_logica ::= exp_relacional:e1 resto_logica:r
+                    {: 
+                        String tipo = e1;
+                        if (r != null && !r.equals("error")) {
+                            // Los operadores logicos (@ y #) siempre devuelven bool
+                            if (!e1.equals("bool") || !r.equals("bool")) {
+                                System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left 
+                                    + ": Operadores logicos requieren tipos bool.");
+                                tipo = "error";
+                            } else {
+                                tipo = "bool";
+                            }
+                        }
+                        RESULT = tipo;
+                    :};
 
 /* Operadores logicos binarios en cadena (and, or) */
-resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional resto_logica | /* vacio */ ;
+resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r
+                    {: 
+                        RESULT = e;
+                    :}
+                | /* vacio */
+                    {: 
+                        RESULT = null;
+                    :};
 
-exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
-                 | LESS_TE    INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
-                 | GREATER_T  INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
-                 | GREATER_TE INICIO_PARENTESIS exp_aritmetica COMA exp_aritmetica FIN_PARENTESIS
-                 | EQUAL      INICIO_PARENTESIS expresion COMA expresion FIN_PARENTESIS
-                 | N_EQUAL    INICIO_PARENTESIS expresion COMA expresion FIN_PARENTESIS
-                 | exp_aritmetica:e {: RESULT = e; :};
+exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | LESS_TE    INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | GREATER_T  INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | GREATER_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | EQUAL      INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS                {: RESULT = validarTipos(e1, e2, "equal", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | N_EQUAL    INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS                {: RESULT = validarTipos(e1, e2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | exp_aritmetica:e {: RESULT = e; :}
+;
 
 /* punto g: suma y resta */
-exp_aritmetica ::= exp_termino:e resto_aritmetica {: RESULT = e; :} ;
+exp_aritmetica ::= exp_termino:e1 resto_aritmetica:r
+                    {: 
+                        String tipo = e1;
+                        if (r != null && !r.equals("error")) {
+                            tipo = validarTipos(e1, r, "aritmetica", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                        RESULT = tipo;
+                    :};
 
 /* Operadores de suma y resta en cadena */
-resto_aritmetica ::= MAS   exp_termino resto_aritmetica
-                    | MENOS exp_termino resto_aritmetica 
-                        | /* vacio */;
+resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r
+                    {: 
+                        RESULT = e;
+                    :}
+                    | MENOS exp_termino:e resto_aritmetica:r
+                    {: 
+                        RESULT = e;
+                    :}
+                    | /* vacio */
+                    {: 
+                        RESULT = null;
+                    :};
 
-exp_termino ::= exp_factor:e resto_termino {: RESULT = e; :} ;
+exp_termino ::= exp_factor:e1 resto_termino:r
+                    {: 
+                        String tipo = e1;
+                        if (r != null && !r.equals("error")) {
+                            tipo = validarTipos(e1, r, "multiplicacion", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                        RESULT = tipo;
+                    :};
+
 
 /* Operadores de multiplicacion, division y modulo en cadena */
-resto_termino ::= MULTIPLICACION exp_factor resto_termino
-                | DIVISION       exp_factor resto_termino
-                | MODULO         exp_factor resto_termino
-                | /* vacio */;
+resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r
+                    {: 
+                        RESULT = e;
+                    :}
+                | DIVISION exp_factor:e resto_termino:r
+                    {: 
+                        RESULT = e;
+                    :}
+                | MODULO exp_factor:e resto_termino:r
+                    {: 
+                        RESULT = e;
+                    :}
+                | /* vacio */
+                    {: 
+                        RESULT = null;
+                    :};
+
 
 /* punto g: potencia */
-exp_potencia ::= valor:e resto_potencia {: RESULT = e; :} ;
+exp_potencia ::= valor:e1 resto_potencia:r
+                    {: 
+                        String tipo = e1;
+                        if (r != null && !r.equals("error")) {
+                            tipo = validarTipos(e1, r, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                        RESULT = tipo;
+                    :};
 
 /* Operador potencia en cadena */
-resto_potencia ::= POTENCIA valor resto_potencia | /* vacio */ ;
+resto_potencia ::= POTENCIA valor:e resto_potencia:r
+                    {: 
+                        RESULT = e;
+                    :}
+                | /* vacio */
+                    {: 
+                        RESULT = null;
+                    :};
 
-exp_factor ::= MENOS numero
-             | INCREMENTO IDENTIFICADOR
+exp_factor ::= MENOS numero:n
+                    {: RESULT = n; :}
+             | INCREMENTO IDENTIFICADOR:id
+                    {: RESULT = verificarUso((String)id, idleft); :}
              | INCREMENTO acceso_arreglo
-             | DECREMENTO IDENTIFICADOR
+                    {: RESULT = "int"; :}
+             | DECREMENTO IDENTIFICADOR:id
+                    {: RESULT = verificarUso((String)id, idleft); :}
              | DECREMENTO acceso_arreglo
-             | OPERADOR_LOGICO_UNARIO exp_factor
-             | exp_potencia:e {: RESULT = e; :} ;
-
+                    {: RESULT = "int"; :}
+             | OPERADOR_LOGICO_UNARIO exp_factor:e
+                    {: RESULT = "bool"; :}
+             | exp_potencia:e
+                    {: RESULT = e; :};
 
 /* Valores permitidos en expresiones: literales, variables, llamadas, etc */
 valor ::= numero:n {: RESULT = n; :}

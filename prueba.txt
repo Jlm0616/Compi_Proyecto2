@@ -1,21 +1,5 @@
 empty ~ __main__ ~ <| |> |:
-    ¡¡ Ambito GLOBAL (MAIN)
-    int ~ x <- 5 !
-    
-    if <| equal <| 3 , 5 |>|> |:
-        ¡¡ Ambito IF 1
-        int ~ x <- 10 !     ¡¡ Sombra a la x global
-        cout ~ "Dentro del if: " ~ x !   ¡¡ Imprime 10
-        
-        if <| equal <| 3 , 5 |>|> |:
-            ¡¡ Ambito IF 1.1
-            int ~ x <- 20 !     ¡¡ Sombra a la x del if anterior
-            int ~ x <- 30 !
-            cout ~ "Dentro del if anidado: " ~ x !   ¡¡ Imprime 20
-        :|
-        
-        cout ~ "Saliendo del primer if: " ~ x !   ¡¡ Sigue siendo 10
-    :|
-    
-    cout ~ "Fuera del if: " ~ x !   ¡¡ Imprime 5 (la global)
+    bool ~ a <- true @ false !        
+    bool ~ b <- equal<|4,<|2 + 4|>|> # false !      
+    cout ~ "fin" !
 :|
