@@ -2182,7 +2182,15 @@ class CUP$parser$actions {
           case 95: // if_cabeza ::= IF INICIO_PARENTESIS expresion FIN_PARENTESIS 
             {
               Object RESULT =null;
-		 contadorIf++;    nombreBloqueActual = "IF "    + contadorIf; 
+		int eleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
+		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
+		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
+		 
+                  if (!e.equals("bool") && !e.equals("error")) {
+                      System.err.println("[ERROR SEMANTICO] Linea " + eleft
+                          + ": la condicion del if debe ser de tipo bool, se encontro '" + e + "'.");
+                  }
+                  contadorIf++; nombreBloqueActual = "IF " + contadorIf; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("if_cabeza",51, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2236,7 +2244,14 @@ class CUP$parser$actions {
           case 101: // do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion FIN_PARENTESIS DELIMITADOR_EXP 
             {
               Object RESULT =null;
-
+		int eleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left;
+		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).right;
+		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-2)).value;
+		
+                           if (!e.equals("bool") && !e.equals("error")) {
+                               System.err.println("[ERROR SEMANTICO] Linea " + eleft
+                                   + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+                           } 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("do_while_sentencia",26, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-6)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

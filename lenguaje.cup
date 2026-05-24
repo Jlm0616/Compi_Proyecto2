@@ -357,7 +357,13 @@ bloque_inicio ::= INICIO_BLOQUE {: pushScope(nombreBloqueActual); nombreBloqueAc
 bloque_simple ::= bloque_inicio lista_sentencias FIN_BLOQUE {: popScope(); :};
 lista_sentencias ::= sentencia lista_sentencias | /* vacio */ ;
 
-if_cabeza    ::= IF INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorIf++;    nombreBloqueActual = "IF "    + contadorIf; :} ;
+if_cabeza ::= IF INICIO_PARENTESIS expresion:e FIN_PARENTESIS{: 
+                  if (!e.equals("bool") && !e.equals("error")) {
+                      System.err.println("[ERROR SEMANTICO] Linea " + eleft
+                          + ": la condicion del if debe ser de tipo bool, se encontro '" + e + "'.");
+                  }
+                  contadorIf++; nombreBloqueActual = "IF " + contadorIf; :} ;
+
 else_cabeza  ::= ELSE {: contadorElse++;  nombreBloqueActual = "ELSE "  + contadorElse; :} ;
 while_cabeza ::= DO {: contadorWhile++; nombreBloqueActual = "DO-WHILE " + contadorWhile; :} ;
 
@@ -365,7 +371,11 @@ if_sentencia ::= if_cabeza bloque_simple
                | if_cabeza bloque_simple else_cabeza bloque_simple
                | IF error bloque_simple {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); :};
 
-do_while_sentencia ::= while_cabeza bloque_simple WHILE  INICIO_PARENTESIS expresion FIN_PARENTESIS DELIMITADOR_EXP ;
+do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP {:
+                           if (!e.equals("bool") && !e.equals("error")) {
+                               System.err.println("[ERROR SEMANTICO] Linea " + eleft
+                                   + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+                           } :} ;
 
 switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: popScope(); :}
                    | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); :};
