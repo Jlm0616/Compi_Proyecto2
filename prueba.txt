@@ -1,5 +1,14 @@
+int ~ suma <| int ~ a, int ~ b |> |:
+    return ~ a !
+:|
+
 empty ~ __main__ ~ <| |> |:
-    bool ~ a <- true @ false !        
-    bool ~ b <- equal<|4,<|2 + 4|>|> # false !      
-    cout ~ "fin" !
+    int ~ x <- "hola" !
+    int ~ y <- 5 !
+    int ~ y <- 10 !
+    z <- 3 !
+    int ~ r <- funcionFantasma <| |> !
+    int ~ s <- suma <| 1, 2 |> !
+    string ~ texto <- "hola" !
+    texto <- 5 !
 :|

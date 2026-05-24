@@ -31,6 +31,8 @@ parser code {:
     // Pila de tablas de simbolos (un HashMap por cada ambito)
     static java.util.Stack<java.util.HashMap<String, Simbolo>> pilaTablas = new java.util.Stack<>();
 
+    static java.util.HashMap<String, String> tablaFunciones = new java.util.HashMap<>();
+
     // Pila con los nombres de cada ambito (para reportes)   
     static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
 
@@ -206,7 +208,8 @@ non terminal String numero;
 non terminal funcion, lista_funciones, parametros, lista_parametros, parametro, parametro_resto;
 non terminal sentencia, lista_sentencias;
 non terminal declaracion, declaracion_resto, declaracion_variable_resto, lista_valores, valor_lista;
-non terminal asignacion, llamada_funcion_exp, return_sentencia, break_sentencia;
+non terminal String llamada_funcion_exp;
+non terminal asignacion, return_sentencia, break_sentencia;
 non terminal cin_sentencia, cout_sentencia, lista_escritura, elemento_escritura;
 non terminal if_sentencia, do_while_sentencia, switch_sentencia;
 non terminal lista_casos, lista_caso_simple, caso, caso_default;
@@ -230,17 +233,14 @@ numero ::= NUMERO_ENTERO    {: RESULT = "int"; :}
 casoConstante ::= numero | CADENA | BOOLEANO | CARACTER ;
 
 /* Main */
-programa ::= lista_funciones
-             {: pushScope("GLOBAL (MAIN)"); :}
-             funcion_main
-             {: popScope(); imprimirTodasLasTablas(); :} ;
+programa ::= lista_funciones {: pushScope("GLOBAL (MAIN)"); :} funcion_main {: popScope(); imprimirTodasLasTablas(); :} ;
 
 funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PARENTESIS INICIO_BLOQUE contenido_programa FIN_BLOQUE ;
 contenido_programa ::= lista_sentencias ;
 
 /* Funciones  */
-funcion ::= INT    SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | FLOAT  SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+funcion ::= INT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "int"); pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | FLOAT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "float"); pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | BOOL   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | CHAR   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | STRING SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
@@ -266,7 +266,7 @@ parametro ::= INT    SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbol
 parametro_resto ::= /* vacio */ 
                     | ASIGNACION valor;
 
-/* Argumentos */
+
 
 /* Lista de argumentos en llamada a funcion (puede estar vacia) */
 argumentos ::= lista_argumentos | /* vacio */ ;
@@ -300,8 +300,7 @@ declaracion_resto ::= declaracion_variable_resto
                     | array ASIGNACION INICIO_BLOQUE lista_valores FIN_BLOQUE DELIMITADOR_EXP;
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
-            | ASIGNACION expresion:e DELIMITADOR_EXP
-              {: validarTipos(tipoDeclaracionActual, e, "asignacion", eleft); :};
+            | ASIGNACION expresion:e DELIMITADOR_EXP {: validarTipos(tipoDeclaracionActual, e, "asignacion", eleft); :};
 
 /* Lista de valores para inicializar arreglo */              
 lista_valores ::= valor_lista | valor_lista COMA lista_valores;
@@ -310,14 +309,19 @@ lista_valores ::= valor_lista | valor_lista COMA lista_valores;
 valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
 
 /* Asignacion */
-asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP
-               {: String tipoVar = verificarUso((String)id, idleft);
-                  validarTipos(tipoVar, e, "asignacion", idleft); :}
+asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {: String tipoVar = verificarUso((String)id, idleft); validarTipos(tipoVar, e, "asignacion", idleft); :}
              | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
              | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
 
 /* Llamada a funcion */
-llamada_funcion_exp ::= IDENTIFICADOR INICIO_PARENTESIS argumentos FIN_PARENTESIS ;
+llamada_funcion_exp ::= IDENTIFICADOR:id INICIO_PARENTESIS argumentos FIN_PARENTESIS{:
+          if (!tablaFunciones.containsKey((String)id)) {
+            System.err.println("[ERROR SEMANTICO] Linea " + idleft 
+                + ": funcion '" + id + "' no fue declarada.");
+            RESULT = "error";
+        } else {
+            RESULT = tablaFunciones.get((String)id); 
+            } :} ;
 
 /* Return y Break */
 return_sentencia ::= RETURN SEPARADOR expresion DELIMITADOR_EXP
@@ -372,8 +376,7 @@ caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias ;
 expresion ::= exp_logica:e{: RESULT = e; :} ;
 
 exp_logica ::= exp_relacional:e1 resto_logica:r
-                    {: 
-                        String tipo = e1;
+                    {: String tipo = e1;
                         if (r != null && !r.equals("error")) {
                             // Los operadores logicos (@ y #) siempre devuelven bool
                             if (!e1.equals("bool") || !r.equals("bool")) {
@@ -384,18 +387,11 @@ exp_logica ::= exp_relacional:e1 resto_logica:r
                                 tipo = "bool";
                             }
                         }
-                        RESULT = tipo;
-                    :};
+                        RESULT = tipo; :};
 
 /* Operadores logicos binarios en cadena (and, or) */
-resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r
-                    {: 
-                        RESULT = e;
-                    :}
-                | /* vacio */
-                    {: 
-                        RESULT = null;
-                    :};
+resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESULT = e; :}
+                | /* vacio */ {: RESULT = null; :};
 
 exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left); :}
                  | LESS_TE    INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left); :}
@@ -403,32 +399,22 @@ exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritm
                  | GREATER_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left); :}
                  | EQUAL      INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS                {: RESULT = validarTipos(e1, e2, "equal", ((Symbol)CUP$parser$stack.peek()).left); :}
                  | N_EQUAL    INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS                {: RESULT = validarTipos(e1, e2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); :}
-                 | exp_aritmetica:e {: RESULT = e; :}
-;
+                 | exp_aritmetica:e {: RESULT = e; :};
 
 /* punto g: suma y resta */
 exp_aritmetica ::= exp_termino:e1 resto_aritmetica:r
-                    {: 
-                        String tipo = e1;
+                    {: String tipo = e1;
                         if (r != null && !r.equals("error")) {
                             tipo = validarTipos(e1, r, "aritmetica", ((Symbol)CUP$parser$stack.peek()).left);
                         }
-                        RESULT = tipo;
-                    :};
+                        RESULT = tipo; :};
 
 /* Operadores de suma y resta en cadena */
 resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r
-                    {: 
-                        RESULT = e;
-                    :}
+                    {: RESULT = e; :}
                     | MENOS exp_termino:e resto_aritmetica:r
-                    {: 
-                        RESULT = e;
-                    :}
-                    | /* vacio */
-                    {: 
-                        RESULT = null;
-                    :};
+                    {: RESULT = e; :}
+                    | /* vacio */  {: RESULT = null; :};
 
 exp_termino ::= exp_factor:e1 resto_termino:r
                     {: 
@@ -441,58 +427,30 @@ exp_termino ::= exp_factor:e1 resto_termino:r
 
 
 /* Operadores de multiplicacion, division y modulo en cadena */
-resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r
-                    {: 
-                        RESULT = e;
-                    :}
-                | DIVISION exp_factor:e resto_termino:r
-                    {: 
-                        RESULT = e;
-                    :}
-                | MODULO exp_factor:e resto_termino:r
-                    {: 
-                        RESULT = e;
-                    :}
-                | /* vacio */
-                    {: 
-                        RESULT = null;
-                    :};
+resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = e; :}
+                | DIVISION exp_factor:e resto_termino:r {: RESULT = e; :}
+                | MODULO exp_factor:e resto_termino:r {: RESULT = e; :}
+                | /* vacio */ {: RESULT = null; :};
 
 
 /* punto g: potencia */
 exp_potencia ::= valor:e1 resto_potencia:r
-                    {: 
-                        String tipo = e1;
+                    {:  String tipo = e1;
                         if (r != null && !r.equals("error")) {
                             tipo = validarTipos(e1, r, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
-                        }
-                        RESULT = tipo;
-                    :};
+                        } RESULT = tipo; :};
 
 /* Operador potencia en cadena */
-resto_potencia ::= POTENCIA valor:e resto_potencia:r
-                    {: 
-                        RESULT = e;
-                    :}
-                | /* vacio */
-                    {: 
-                        RESULT = null;
-                    :};
+resto_potencia ::= POTENCIA valor:e resto_potencia:r {:  RESULT = e;:}
+                | /* vacio */  {: RESULT = null; :};
 
-exp_factor ::= MENOS numero:n
-                    {: RESULT = n; :}
-             | INCREMENTO IDENTIFICADOR:id
-                    {: RESULT = verificarUso((String)id, idleft); :}
-             | INCREMENTO acceso_arreglo
-                    {: RESULT = "int"; :}
-             | DECREMENTO IDENTIFICADOR:id
-                    {: RESULT = verificarUso((String)id, idleft); :}
-             | DECREMENTO acceso_arreglo
-                    {: RESULT = "int"; :}
-             | OPERADOR_LOGICO_UNARIO exp_factor:e
-                    {: RESULT = "bool"; :}
-             | exp_potencia:e
-                    {: RESULT = e; :};
+exp_factor ::= MENOS numero:n {: RESULT = n; :}
+             | INCREMENTO IDENTIFICADOR:id {: RESULT = verificarUso((String)id, idleft); :}
+             | INCREMENTO acceso_arreglo {: RESULT = "int"; :}
+             | DECREMENTO IDENTIFICADOR:id {: RESULT = verificarUso((String)id, idleft); :}
+             | DECREMENTO acceso_arreglo {: RESULT = "int"; :}
+             | OPERADOR_LOGICO_UNARIO exp_factor:e {: RESULT = "bool"; :}
+             | exp_potencia:e {: RESULT = e; :};
 
 /* Valores permitidos en expresiones: literales, variables, llamadas, etc */
 valor ::= numero:n {: RESULT = n; :}
@@ -501,7 +459,7 @@ valor ::= numero:n {: RESULT = n; :}
         | CADENA                      {: RESULT = "string"; :}
         | CARACTER                    {: RESULT = "char"; :}
         | acceso_arreglo              {: RESULT = "int"; :}
-        | llamada_funcion_exp         {: RESULT = "int"; :}
+        | llamada_funcion_exp:lf      {: RESULT = lf; :}
         | INICIO_PARENTESIS exp_logica:e FIN_PARENTESIS {: RESULT = e; :} ;
 
 /* Arreglos bidimensionales */
