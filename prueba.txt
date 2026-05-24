@@ -1,6 +1,9 @@
 empty ~ __main__ ~ <| |> |:
-    int ~ x <- 5 !
-    if  <| x|> |:
-        cout ~ x !
-    :|
+    ¡¡ break fuera de contexto - debe dar error
+    break !
+
+    ¡¡ break dentro de do-while - correcto
+    do |:
+        break !
+    :| while <| greather_t <| 1, 0 |> |> !
 :|

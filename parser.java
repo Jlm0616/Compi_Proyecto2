@@ -1014,7 +1014,7 @@ public class parser extends java_cup.runtime.lr_parser {
     static int contadorIf = 0;
     static int contadorElse = 0;
     static int contadorWhile = 0;
-
+    static int nivelBreak = 0;
     // Nombre del bloque actual (ej: "IF 1", "SWITCH 2", etc.)
     static String nombreBloqueActual = "BLOQUE";
 
@@ -1376,7 +1376,7 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- pushScope((String)id); 
+ tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; pushScope((String)id); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$3",57, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1402,7 +1402,7 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- pushScope((String)id); 
+ tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; pushScope((String)id); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$4",58, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1428,7 +1428,7 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- pushScope((String)id); 
+ tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; pushScope((String)id); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$5",59, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2026,7 +2026,11 @@ class CUP$parser$actions {
           case 78: // break_sentencia ::= BREAK DELIMITADOR_EXP 
             {
               Object RESULT =null;
-
+		
+        if (nivelBreak == 0) {
+            System.err.println("[ERROR SEMANTICO] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left
+                + ": 'break' fuera de un switch o do-while.");
+        } 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("break_sentencia",20, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2208,7 +2212,7 @@ class CUP$parser$actions {
           case 97: // while_cabeza ::= DO 
             {
               Object RESULT =null;
-		 contadorWhile++; nombreBloqueActual = "DO-WHILE " + contadorWhile; 
+		 contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("while_cabeza",53, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2248,10 +2252,10 @@ class CUP$parser$actions {
 		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).right;
 		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-2)).value;
 		
-                           if (!e.equals("bool") && !e.equals("error")) {
-                               System.err.println("[ERROR SEMANTICO] Linea " + eleft
-                                   + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
-                           } 
+        nivelBreak--;
+        if (!e.equals("bool") && !e.equals("error")) {
+            System.err.println("[ERROR SEMANTICO] Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+        } 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("do_while_sentencia",26, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-6)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2260,7 +2264,7 @@ class CUP$parser$actions {
           case 102: // NT$11 ::= 
             {
               Object RESULT =null;
- contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; pushScope("SWITCH " + switchActual); 
+ contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; nivelBreak++; pushScope("SWITCH " + switchActual); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$11",65, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2271,7 +2275,7 @@ class CUP$parser$actions {
               Object RESULT =null;
               // propagate RESULT from NT$11
                 RESULT = (Object) ((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-3)).value;
-		 popScope(); 
+		 nivelBreak--; popScope(); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("switch_sentencia",27, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-8)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

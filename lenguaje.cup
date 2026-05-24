@@ -47,7 +47,7 @@ parser code {:
     static int contadorIf = 0;
     static int contadorElse = 0;
     static int contadorWhile = 0;
-
+    static int nivelBreak = 0;
     // Nombre del bloque actual (ej: "IF 1", "SWITCH 2", etc.)
     static String nombreBloqueActual = "BLOQUE";
 
@@ -253,9 +253,9 @@ contenido_programa ::= lista_sentencias ;
 /* Funciones  */
 funcion ::= INT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | FLOAT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | BOOL   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | CHAR   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | STRING SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
+          | BOOL   SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | CHAR   SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | STRING SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
 
 /*Lista de 0 o mas funciones*/
 lista_funciones ::= funcion lista_funciones | /* vacio */ ;
@@ -339,7 +339,11 @@ llamada_funcion_exp ::= IDENTIFICADOR:id INICIO_PARENTESIS argumentos FIN_PARENT
 return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipos(tipoFuncionActual, e, "return", eleft); :}
                    | RETURN error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :};
 
-break_sentencia ::= BREAK DELIMITADOR_EXP ;
+break_sentencia ::= BREAK DELIMITADOR_EXP{:
+        if (nivelBreak == 0) {
+            System.err.println("[ERROR SEMANTICO] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left
+                + ": 'break' fuera de un switch o do-while.");
+        } :} ;
 
 /* cin y cout */
 cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP
@@ -351,6 +355,8 @@ lista_escritura ::= elemento_escritura
                     | elemento_escritura SEPARADOR lista_escritura;
 
 elemento_escritura ::= IDENTIFICADOR | MENOS numero |numero | CADENA | BOOLEANO | CARACTER | acceso_arreglo ;
+
+
 
 /* Bloques */
 bloque_inicio ::= INICIO_BLOQUE {: pushScope(nombreBloqueActual); nombreBloqueActual = "BLOQUE"; :} ;
@@ -365,19 +371,19 @@ if_cabeza ::= IF INICIO_PARENTESIS expresion:e FIN_PARENTESIS{:
                   contadorIf++; nombreBloqueActual = "IF " + contadorIf; :} ;
 
 else_cabeza  ::= ELSE {: contadorElse++;  nombreBloqueActual = "ELSE "  + contadorElse; :} ;
-while_cabeza ::= DO {: contadorWhile++; nombreBloqueActual = "DO-WHILE " + contadorWhile; :} ;
+while_cabeza ::= DO {: contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; :} ;
 
 if_sentencia ::= if_cabeza bloque_simple
                | if_cabeza bloque_simple else_cabeza bloque_simple
                | IF error bloque_simple {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); :};
 
-do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP {:
-                           if (!e.equals("bool") && !e.equals("error")) {
-                               System.err.println("[ERROR SEMANTICO] Linea " + eleft
-                                   + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
-                           } :} ;
+do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP{:
+        nivelBreak--;
+        if (!e.equals("bool") && !e.equals("error")) {
+            System.err.println("[ERROR SEMANTICO] Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+        } :} ;
 
-switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: popScope(); :}
+switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; nivelBreak++; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: nivelBreak--; popScope(); :}
                    | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); :};
 
 /* Casos del switch incluyendo opcional default */
@@ -438,8 +444,7 @@ resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r
                     {: RESULT = e; :}
                     | /* vacio */  {: RESULT = null; :};
 
-exp_termino ::= exp_factor:e1 resto_termino:r
-                    {: 
+exp_termino ::= exp_factor:e1 resto_termino:r {: 
                         String tipo = e1;
                         if (r != null && !r.equals("error")) {
                             tipo = validarTipos(e1, r, "multiplicacion", ((Symbol)CUP$parser$stack.peek()).left);
