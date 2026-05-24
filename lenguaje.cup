@@ -39,6 +39,8 @@ parser code {:
     // Tipo de la variable que se esta declarando actualmente
     static String tipoDeclaracionActual = "";
 
+    static String tipoFuncionActual = "";
+
     // Contadores para nombrar bloques, switch, if, else, do-while
     static int contadorBloques = 0;
     static int contadorSwitch = 0;
@@ -172,20 +174,30 @@ parser code {:
     // Compara si dos tipos son compatibles en una asignacion
     public static String validarTipos(String tipo1, String tipo2, String operacion, int linea) {
         if (tipo1.equals("error") || tipo2.equals("error")) return "error";
-    
+
         if (!tipo1.equals(tipo2)) {
-            System.err.println("[ERROR SEMANTICO] Linea " + linea + ": Tipos incompatibles en operacion '" + operacion + "'. " + "Se esperaban dos valores del mismo tipo, pero se encontraron '" + tipo1 + "' y '" + tipo2 + "'.");
+            if (operacion.equals("asignacion")) {
+                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                    + ": tipo incompatible en asignacion, se esperaba '" + tipo1 
+                    + "' pero se encontro '" + tipo2 + "'.");
+            } else if (operacion.equals("return")) {
+                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                    + ": tipo de retorno incorrecto, se esperaba '" + tipo1 
+                    + "' pero se encontro '" + tipo2 + "'.");
+            } else {
+                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                    + ": tipos incompatibles en operacion '" + operacion 
+                    + "', se encontraron '" + tipo1 + "' y '" + tipo2 + "'.");
+            }
             return "error";
         }
-    
-        // Operaciones relacionales devuelven bool
+
         if (operacion.equals("less_t") || operacion.equals("less_te") || 
             operacion.equals("greather_t") || operacion.equals("greather_te") ||
             operacion.equals("equal") || operacion.equals("n_equal")) {
             return "bool";
         }
-    
-        // Aritmeticas devuelven el mismo tipo
+
         return tipo1;
     }
 :}
@@ -239,8 +251,8 @@ funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PA
 contenido_programa ::= lista_sentencias ;
 
 /* Funciones  */
-funcion ::= INT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "int"); pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | FLOAT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "float"); pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+funcion ::= INT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
+          | FLOAT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | BOOL   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | CHAR   SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
           | STRING SEPARADOR IDENTIFICADOR:id {: pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
@@ -324,7 +336,7 @@ llamada_funcion_exp ::= IDENTIFICADOR:id INICIO_PARENTESIS argumentos FIN_PARENT
             } :} ;
 
 /* Return y Break */
-return_sentencia ::= RETURN SEPARADOR expresion DELIMITADOR_EXP
+return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipos(tipoFuncionActual, e, "return", eleft); :}
                    | RETURN error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :};
 
 break_sentencia ::= BREAK DELIMITADOR_EXP ;

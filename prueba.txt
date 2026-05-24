@@ -1,14 +1,23 @@
-int ~ suma <| int ~ a, int ~ b |> |:
+int ~ suma <| int ~ a |> |:
     return ~ a !
 :|
 
+bool ~ esMayor <| int ~ x |> |:
+    return ~ "hola" !
+:|
+
+float ~ dividir <| float ~ a |> |:
+    return ~ 3 !
+:|
+
 empty ~ __main__ ~ <| |> |:
-    int ~ x <- "hola" !
-    int ~ y <- 5 !
-    int ~ y <- 10 !
-    z <- 3 !
-    int ~ r <- funcionFantasma <| |> !
-    int ~ s <- suma <| 1, 2 |> !
-    string ~ texto <- "hola" !
-    texto <- 5 !
+    int ~ s <- suma <| 1 |> !
+    int ~ z <- 5 !
+    int ~ z <- 10 !
+    w <- 3 !
+    int ~ q <- "texto" !
+    string ~ nombre <- "juan" !
+    nombre <- 99 !
+    int ~ r <- noExiste <| |> !
+    bool ~ mayor <- greather_t <| 5, 3 |> !
 :|

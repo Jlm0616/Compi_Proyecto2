@@ -1006,6 +1006,8 @@ public class parser extends java_cup.runtime.lr_parser {
     // Tipo de la variable que se esta declarando actualmente
     static String tipoDeclaracionActual = "";
 
+    static String tipoFuncionActual = "";
+
     // Contadores para nombrar bloques, switch, if, else, do-while
     static int contadorBloques = 0;
     static int contadorSwitch = 0;
@@ -1139,20 +1141,30 @@ public class parser extends java_cup.runtime.lr_parser {
     // Compara si dos tipos son compatibles en una asignacion
     public static String validarTipos(String tipo1, String tipo2, String operacion, int linea) {
         if (tipo1.equals("error") || tipo2.equals("error")) return "error";
-    
+
         if (!tipo1.equals(tipo2)) {
-            System.err.println("[ERROR SEMANTICO] Linea " + linea + ": Tipos incompatibles en operacion '" + operacion + "'. " + "Se esperaban dos valores del mismo tipo, pero se encontraron '" + tipo1 + "' y '" + tipo2 + "'.");
+            if (operacion.equals("asignacion")) {
+                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                    + ": tipo incompatible en asignacion, se esperaba '" + tipo1 
+                    + "' pero se encontro '" + tipo2 + "'.");
+            } else if (operacion.equals("return")) {
+                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                    + ": tipo de retorno incorrecto, se esperaba '" + tipo1 
+                    + "' pero se encontro '" + tipo2 + "'.");
+            } else {
+                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                    + ": tipos incompatibles en operacion '" + operacion 
+                    + "', se encontraron '" + tipo1 + "' y '" + tipo2 + "'.");
+            }
             return "error";
         }
-    
-        // Operaciones relacionales devuelven bool
+
         if (operacion.equals("less_t") || operacion.equals("less_te") || 
             operacion.equals("greather_t") || operacion.equals("greather_te") ||
             operacion.equals("equal") || operacion.equals("n_equal")) {
             return "bool";
         }
-    
-        // Aritmeticas devuelven el mismo tipo
+
         return tipo1;
     }
 
@@ -1312,7 +1324,7 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- tablaFunciones.put((String)id, "int"); pushScope((String)id); 
+ tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; pushScope((String)id); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$1",55, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1338,7 +1350,7 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- tablaFunciones.put((String)id, "float"); pushScope((String)id); 
+ tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; pushScope((String)id); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$2",56, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1993,7 +2005,10 @@ class CUP$parser$actions {
           case 76: // return_sentencia ::= RETURN SEPARADOR expresion DELIMITADOR_EXP 
             {
               Object RESULT =null;
-
+		int eleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
+		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
+		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
+		 validarTipos(tipoFuncionActual, e, "return", eleft); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("return_sentencia",19, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
