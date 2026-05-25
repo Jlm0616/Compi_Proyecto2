@@ -1,9 +1,15 @@
 empty ~ __main__ ~ <| |> |:
-    ¡¡ break fuera de contexto - debe dar error
-    break !
 
-    ¡¡ break dentro de do-while - correcto
-    do |:
-        break !
-    :| while <| greather_t <| 1, 0 |> |> !
+    int ~ x <- 5 !
+    float ~ matriz <<4>> <<0>> <- |: |: 3.4, 25:| , |: 1.4, 4.4 :| :| ! 
+    int ~ x2 <- 5 !
+    
+         ¡¡ Correcto: indices numericos
+    matriz <<x>> <<0>> <- 10.4 !
+    
+       ¡¡  // Incorrecto: indice no numerico (debe dar error)
+    matriz <<3>> <<0>> <- 1.0 !            ¡¡  ERROR: 5.3 es float
+    
+        ¡¡ // Incorrecto: indice no numerico (debe dar error)
+    matriz <<x>> <<7>> <- 1.0 !      ¡¡  ERROR: 226.5 es float
 :|

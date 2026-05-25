@@ -200,6 +200,14 @@ parser code {:
 
         return tipo1;
     }
+
+    public static void actualizarTipoSimbolo(String nombre, String nuevoTipo) {
+        if (pilaTablas.isEmpty()) return;
+        java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
+        if (ambito.containsKey(nombre)) {
+            ambito.get(nombre).tipo = nuevoTipo;
+        }
+    }
 :}
 
 /* Terminales */
@@ -219,7 +227,8 @@ non terminal programa, funcion_main, contenido_programa;
 non terminal String numero;
 non terminal funcion, lista_funciones, parametros, lista_parametros, parametro, parametro_resto;
 non terminal sentencia, lista_sentencias;
-non terminal declaracion, declaracion_resto, declaracion_variable_resto, lista_valores, valor_lista;
+non terminal declaracion, declaracion_variable_resto;
+non terminal String lista_valores, valor_lista;
 non terminal String llamada_funcion_exp;
 non terminal asignacion, return_sentencia, break_sentencia;
 non terminal cin_sentencia, cout_sentencia, lista_escritura, elemento_escritura;
@@ -229,9 +238,11 @@ non terminal String expresion, exp_logica, resto_logica;
 non terminal String exp_relacional, exp_aritmetica, resto_aritmetica;
 non terminal String exp_termino, resto_termino, exp_potencia, resto_potencia;
 non terminal String exp_factor, valor;
-non terminal array, acceso_arreglo;
+non terminal array;
+non terminal String acceso_arreglo;
 non terminal argumentos, lista_argumentos, bloque_simple, bloque_inicio;
 non terminal casoConstante, if_cabeza, else_cabeza, while_cabeza;
+non terminal String declaracion_resto;
 
 /* Reglas gramaticales */
 start with programa;
@@ -269,6 +280,7 @@ lista_parametros ::= parametro | parametro COMA lista_parametros ;
 /* FIX: factorizado con parametro_resto para evitar conflictos y reducir repeticion */
 parametro ::= INT    SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "int", idleft); :}
             | INT    SEPARADOR IDENTIFICADOR:id array parametro_resto {: agregarSimbolo((String)id, "int[]", idleft); :}
+            | FLOAT  SEPARADOR IDENTIFICADOR:id array parametro_resto {: agregarSimbolo((String)id, "float[]", idleft); :}
             | FLOAT  SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "float", idleft); :}
             | BOOL   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "bool", idleft); :}
             | CHAR   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "char", idleft); :}
@@ -300,30 +312,80 @@ sentencia ::= declaracion
             | error DELIMITADOR_EXP;
 
 /* Declaraciones */
-declaracion ::= INT SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :} declaracion_resto
-              | FLOAT SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "float"; agregarSimbolo((String)id, "float", idleft); :} declaracion_resto
-              | BOOL SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "bool"; agregarSimbolo((String)id, "bool", idleft); :} declaracion_variable_resto
-              | CHAR SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "char"; agregarSimbolo((String)id, "char", idleft); :} declaracion_variable_resto
-              | STRING SEPARADOR IDENTIFICADOR:id {: tipoDeclaracionActual = "string"; agregarSimbolo((String)id, "string", idleft); :} declaracion_variable_resto
-              | error SEPARADOR IDENTIFICADOR declaracion_resto {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :};
+declaracion ::= 
+    INT SEPARADOR IDENTIFICADOR:id
+        {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :}
+    declaracion_resto:r
+        {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
+
+  | FLOAT SEPARADOR IDENTIFICADOR:id
+        {: tipoDeclaracionActual = "float"; agregarSimbolo((String)id, "float", idleft); :}
+    declaracion_resto:r
+        {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
+
+  | BOOL SEPARADOR IDENTIFICADOR:id
+        {: tipoDeclaracionActual = "bool"; agregarSimbolo((String)id, "bool", idleft); :}
+    declaracion_variable_resto
+
+  | CHAR SEPARADOR IDENTIFICADOR:id
+        {: tipoDeclaracionActual = "char"; agregarSimbolo((String)id, "char", idleft); :}
+    declaracion_variable_resto
+
+  | STRING SEPARADOR IDENTIFICADOR:id
+        {: tipoDeclaracionActual = "string"; agregarSimbolo((String)id, "string", idleft); :}
+    declaracion_variable_resto
+
+  | error SEPARADOR IDENTIFICADOR declaracion_resto
+        {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
+            + ": Tipo no reconocido, se asume 'int'"); :};
 
 declaracion_resto ::= declaracion_variable_resto
+                        {: RESULT = null; :}
                     | array DELIMITADOR_EXP
-                    | array ASIGNACION INICIO_BLOQUE lista_valores FIN_BLOQUE DELIMITADOR_EXP;
+                        {: RESULT = "[][]"; :}
+                    | array ASIGNACION INICIO_BLOQUE lista_valores:v FIN_BLOQUE DELIMITADOR_EXP
+                        {: 
+                            if (!v.equals(tipoDeclaracionActual) && !v.equals("error")) {
+                                System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": tipo incompatible en inicializacion de arreglo, se esperaba '" + tipoDeclaracionActual + "' pero se encontro '" + v + "'.");
+                            }
+                            RESULT = "[][]"; 
+                        :}
+                    | array ASIGNACION expresion:e DELIMITADOR_EXP
+                        {: 
+                            System.err.println("[ERROR SEMANTICO] Linea " + eleft + ": un arreglo bidimensional no puede inicializarse con un valor escalar, use |: ... :|"); RESULT = "[][]"; 
+                        :};
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
             | ASIGNACION expresion:e DELIMITADOR_EXP {: validarTipos(tipoDeclaracionActual, e, "asignacion", eleft); :};
 
 /* Lista de valores para inicializar arreglo */              
-lista_valores ::= valor_lista | valor_lista COMA lista_valores;
+lista_valores ::= valor_lista:v 
+                    {: RESULT = v; :}
+                | valor_lista:v COMA lista_valores:r
+                    {: 
+                        if (!v.equals(r) && !v.equals("error") && !r.equals("error")) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left
+                                + ": tipos inconsistentes en inicializacion de arreglo, se encontro '"
+                                + v + "' y '" + r + "' en la misma lista.");
+                            RESULT = "error";
+                        } else if (v.equals("error") || r.equals("error")) {
+                            RESULT = "error";
+                        } else {
+                            RESULT = v;
+                        }
+                    :};
 
 /* Elemento individual en inicializacion de arreglo (puede ser anidado) */
-valor_lista ::= expresion | INICIO_BLOQUE lista_valores FIN_BLOQUE;
+valor_lista ::= expresion:e 
+                    {: RESULT = e; :}
+              | INICIO_BLOQUE lista_valores:v FIN_BLOQUE 
+                    {: RESULT = v; :};
 
 /* Asignacion */
 asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {: String tipoVar = verificarUso((String)id, idleft); validarTipos(tipoVar, e, "asignacion", idleft); :}
-             | acceso_arreglo ASIGNACION expresion DELIMITADOR_EXP
+             | acceso_arreglo:arr ASIGNACION expresion:e DELIMITADOR_EXP {: validarTipos(arr, e, "asignacion", ((Symbol)CUP$parser$stack.peek()).left); :}
              | IDENTIFICADOR error expresion DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
+
 
 /* Llamada a funcion */
 llamada_funcion_exp ::= IDENTIFICADOR:id INICIO_PARENTESIS argumentos FIN_PARENTESIS{:
@@ -485,7 +547,7 @@ valor ::= numero:n {: RESULT = n; :}
         | BOOLEANO                    {: RESULT = "bool"; :}
         | CADENA                      {: RESULT = "string"; :}
         | CARACTER                    {: RESULT = "char"; :}
-        | acceso_arreglo              {: RESULT = "int"; :}
+        | acceso_arreglo:arr          {: RESULT = arr; :}
         | llamada_funcion_exp:lf      {: RESULT = lf; :}
         | INICIO_PARENTESIS exp_logica:e FIN_PARENTESIS {: RESULT = e; :} ;
 
@@ -493,4 +555,33 @@ valor ::= numero:n {: RESULT = n; :}
 array ::= INICIO_INDICE expresion FIN_INDICE INICIO_INDICE expresion FIN_INDICE;
 
 /* Acceso a elemento de arreglo bidimensional */
-acceso_arreglo ::= IDENTIFICADOR INICIO_INDICE exp_aritmetica FIN_INDICE INICIO_INDICE exp_aritmetica FIN_INDICE;
+acceso_arreglo ::= IDENTIFICADOR:id INICIO_INDICE exp_aritmetica:e1 FIN_INDICE INICIO_INDICE exp_aritmetica:e2 FIN_INDICE
+                   {: 
+                       // Verificar que la variable del arreglo exista
+                       String tipoArreglo = verificarUso((String)id, idleft);
+                       
+                       // VERIFICAR QUE SEA UN ARREGLO BIDIMENSIONAL
+                       if (!tipoArreglo.endsWith("[][]")) {
+                           System.err.println("[ERROR SEMANTICO] Linea " + idleft 
+                               + ": La variable '" + id + "' no es un arreglo bidimensional, es de tipo '" + tipoArreglo + "'");
+                       }
+                       
+                       // Verificar que los indices sean ENTEROS (no float)
+                       if (!e1.equals("int")) {
+                           System.err.println("[ERROR SEMANTICO] Linea " + idleft 
+                               + ": Indice de arreglo debe ser int, se encontro '" + e1 + "'");
+                       }
+                       if (!e2.equals("int")) {
+                           System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left 
+                               + ": Indice de arreglo debe ser int, se encontro '" + e2 + "'");
+                       }
+                       
+                       // Extraer tipo base (quitar "[]")
+                       String tipoBase = tipoArreglo;
+                       if (tipoBase.endsWith("[][]")) {
+                           tipoBase = tipoBase.substring(0, tipoBase.length() - 4);
+                       }
+                       
+                       RESULT = tipoBase;  // "int" o "float"
+                   :}
+;
