@@ -2826,7 +2826,13 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 RESULT = verificarUso((String)id, idleft); 
+		 
+                    String t = verificarUso((String)id, idleft);
+                    if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
+                        System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": '++' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
+                    }
+                    RESULT = t; 
+                
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_factor",41, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2835,7 +2841,10 @@ class CUP$parser$actions {
           case 141: // exp_factor ::= INCREMENTO acceso_arreglo 
             {
               String RESULT =null;
-		 RESULT = "int"; 
+		int arrleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
+		int arrright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
+		String arr = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
+		 RESULT = arr; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_factor",41, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2847,7 +2856,13 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 RESULT = verificarUso((String)id, idleft); 
+		 
+                    String t = verificarUso((String)id, idleft);
+                    if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
+                        System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": '--' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
+                    }
+                    RESULT = t; 
+                
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_factor",41, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2856,7 +2871,10 @@ class CUP$parser$actions {
           case 143: // exp_factor ::= DECREMENTO acceso_arreglo 
             {
               String RESULT =null;
-		 RESULT = "int"; 
+		int arrleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
+		int arrright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
+		String arr = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
+		 RESULT = arr; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_factor",41, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

@@ -534,10 +534,24 @@ resto_potencia ::= POTENCIA valor:e resto_potencia:r {:  RESULT = e;:}
                 | /* vacio */  {: RESULT = null; :};
 
 exp_factor ::= MENOS numero:n {: RESULT = n; :}
-             | INCREMENTO IDENTIFICADOR:id {: RESULT = verificarUso((String)id, idleft); :}
-             | INCREMENTO acceso_arreglo {: RESULT = "int"; :}
-             | DECREMENTO IDENTIFICADOR:id {: RESULT = verificarUso((String)id, idleft); :}
-             | DECREMENTO acceso_arreglo {: RESULT = "int"; :}
+             | INCREMENTO IDENTIFICADOR:id
+                {: 
+                    String t = verificarUso((String)id, idleft);
+                    if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
+                        System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": '++' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
+                    }
+                    RESULT = t; 
+                :}
+             | INCREMENTO acceso_arreglo:arr {: RESULT = arr; :}
+             | DECREMENTO IDENTIFICADOR:id
+                {: 
+                    String t = verificarUso((String)id, idleft);
+                    if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
+                        System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": '--' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
+                    }
+                    RESULT = t; 
+                :}
+             | DECREMENTO acceso_arreglo:arr {: RESULT = arr; :}
              | OPERADOR_LOGICO_UNARIO exp_factor:e {: RESULT = "bool"; :}
              | exp_potencia:e {: RESULT = e; :};
 
