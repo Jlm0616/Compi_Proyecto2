@@ -395,7 +395,7 @@ llamada_funcion_exp ::= IDENTIFICADOR:id INICIO_PARENTESIS argumentos FIN_PARENT
             RESULT = "error";
         } else {
             RESULT = tablaFunciones.get((String)id); 
-            } :} ;
+        } :} ;
 
 /* Return y Break */
 return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipos(tipoFuncionActual, e, "return", eleft); :}
@@ -403,13 +403,17 @@ return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipo
 
 break_sentencia ::= BREAK DELIMITADOR_EXP{:
         if (nivelBreak == 0) {
-            System.err.println("[ERROR SEMANTICO] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left
-                + ": 'break' fuera de un switch o do-while.");
+            System.err.println("[ERROR SEMANTICO] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": 'break' fuera de un switch o do-while.");
         } :} ;
 
 /* cin y cout */
 cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP
-                  {: verificarUso((String)id, idleft); :};
+                  {: String t = verificarUso((String)id, idleft);
+                     if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": cin solo puede leer variables int o float, se encontro tipo '" + t + "'.");
+                     }
+                 :};
+
 cout_sentencia ::= COUT SEPARADOR lista_escritura DELIMITADOR_EXP
                  | COUT error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); :};
 
@@ -417,7 +421,6 @@ lista_escritura ::= elemento_escritura
                     | elemento_escritura SEPARADOR lista_escritura;
 
 elemento_escritura ::= IDENTIFICADOR | MENOS numero |numero | CADENA | BOOLEANO | CARACTER | acceso_arreglo ;
-
 
 
 /* Bloques */
@@ -461,9 +464,9 @@ caso ::= CASE SEPARADOR casoConstante DOS_PUNTOS {: casoActual++; :} lista_sente
        | CASE error DOS_PUNTOS lista_sentencias  {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); :};
 
 /* Etiqueta default (opcional) */
-caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias ;
+caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias;
 
-expresion ::= exp_logica:e{: RESULT = e; :} ;
+expresion ::= exp_logica:e{: RESULT = e; :};
 
 exp_logica ::= exp_relacional:e1 resto_logica:r
                     {: String tipo = e1;
@@ -483,12 +486,50 @@ exp_logica ::= exp_relacional:e1 resto_logica:r
 resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESULT = e; :}
                 | /* vacio */ {: RESULT = null; :};
 
-exp_relacional ::= LESS_T     INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left); :}
-                 | LESS_TE    INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left); :}
-                 | GREATER_T  INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left); :}
-                 | GREATER_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS      {: RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left); :}
-                 | EQUAL      INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS                {: RESULT = validarTipos(e1, e2, "equal", ((Symbol)CUP$parser$stack.peek()).left); :}
-                 | N_EQUAL    INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS                {: RESULT = validarTipos(e1, e2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); :}
+exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
+                    {: 
+                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
+                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
+                            RESULT = "error";
+                        } else {
+                            RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                    :}
+                 | LESS_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
+                    {: 
+                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
+                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
+                            RESULT = "error";
+                        } else {
+                            RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                    :}
+                 | GREATER_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
+                    {: 
+                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
+                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
+                            RESULT = "error";
+                        } else {
+                            RESULT = validarTipos(e1, e2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                    :}
+                 | GREATER_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
+                    {: 
+                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
+                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
+                            RESULT = "error";
+                        } else {
+                            RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
+                        }
+                    :}
+                 | EQUAL INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS
+                    {: RESULT = validarTipos(e1, e2, "equal", ((Symbol)CUP$parser$stack.peek()).left); :}
+                 | N_EQUAL INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS
+                    {: RESULT = validarTipos(e1, e2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); :}
                  | exp_aritmetica:e {: RESULT = e; :};
 
 /* punto g: suma y resta */
@@ -507,18 +548,31 @@ resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r
                     | /* vacio */  {: RESULT = null; :};
 
 exp_termino ::= exp_factor:e1 resto_termino:r {: 
-                        String tipo = e1;
-                        if (r != null && !r.equals("error")) {
-                            tipo = validarTipos(e1, r, "multiplicacion", ((Symbol)CUP$parser$stack.peek()).left);
+                    String tipo = e1;
+                    if (r != null && !r.equals("error")) {
+                        String tipoR = r.contains("|") ? r.split("\\|")[0] : r;
+                        String opR   = r.contains("|") ? r.split("\\|")[1] : "*";
+                        if (opR.equals("%") && !e1.equals("int") && !e1.equals("error")) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + e1 + "'.");
+                            tipo = "error";
+                        } else if (opR.equals("%") && !tipoR.equals("int") && !tipoR.equals("error")) {
+                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipoR + "'.");
+                            tipo = "error";
+                        } else {
+                            String nombreOp = opR.equals("*") ? "multiplicacion" 
+                                           : opR.equals("/") ? "division" 
+                                           : "modulo";
+                            tipo = validarTipos(e1, tipoR, nombreOp, ((Symbol)CUP$parser$stack.peek()).left);
                         }
-                        RESULT = tipo;
-                    :};
+                    }
+                    RESULT = tipo;
+                :};
 
 
 /* Operadores de multiplicacion, division y modulo en cadena */
-resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = e; :}
-                | DIVISION exp_factor:e resto_termino:r {: RESULT = e; :}
-                | MODULO exp_factor:e resto_termino:r {: RESULT = e; :}
+resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = e + "|*"; :}
+                | DIVISION exp_factor:e resto_termino:r       {: RESULT = e + "|/"; :}
+                | MODULO exp_factor:e resto_termino:r         {: RESULT = e + "|%"; :}
                 | /* vacio */ {: RESULT = null; :};
 
 
@@ -597,5 +651,4 @@ acceso_arreglo ::= IDENTIFICADOR:id INICIO_INDICE exp_aritmetica:e1 FIN_INDICE I
                        }
                        
                        RESULT = tipoBase;  // "int" o "float"
-                   :}
-;
+                   :};

@@ -27,4 +27,34 @@ empty ~ __main__ ~ <| |> |:
     ¡¡ Incorrecto: valor float en indice, debe dar error semantico  
     matriz <<x>> <<7>> <- 1.0 !
 
+    ¡¡ Correcto
+    cin ~ x !
+
+    ¡¡ Incorrecto: bool, debe dar error
+    cin ~ b !
+
+    ¡¡ Incorrecto: string, debe dar error
+    cin ~ s !
+
+    ¡¡ Correcto: modulo entre enteros
+    x % 3 !
+
+    ¡¡ Incorrecto: modulo con float, debe dar error
+    y % 2.0 !
+
+    ¡¡ Incorrecto: modulo con bool, debe dar error
+    b % x !
+
+    ¡¡ Correcto: less_t entre int
+    less_t <| x, 3 |> !
+
+    ¡¡ Correcto: less_t entre float
+    less_t <| x, 3.14 |> !
+
+    ¡¡ Incorrecto: less_t con bool, debe dar error
+    less_t <| b, b |> !
+
+    ¡¡ Incorrecto: greather_t con bool, debe dar error
+    greather_t <| b, b |> !
+    
 :|
