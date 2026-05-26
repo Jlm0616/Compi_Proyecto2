@@ -31,7 +31,10 @@ parser code {:
     // Pila de tablas de simbolos (un HashMap por cada ambito)
     static java.util.Stack<java.util.HashMap<String, Simbolo>> pilaTablas = new java.util.Stack<>();
 
+    static java.util.HashMap<String, java.util.ArrayList<String>> tablaParametros = new java.util.HashMap<>();
+    static java.util.ArrayList<String> parametrosActuales = new java.util.ArrayList<>();
     static java.util.HashMap<String, String> tablaFunciones = new java.util.HashMap<>();
+    static java.util.ArrayList<String> argumentosActuales = new java.util.ArrayList<>();
 
     // Pila con los nombres de cada ambito (para reportes)   
     static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
@@ -262,11 +265,26 @@ funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PA
 contenido_programa ::= lista_sentencias ;
 
 /* Funciones  */
-funcion ::= INT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | FLOAT SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | BOOL   SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | CHAR   SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :}
-          | STRING SEPARADOR IDENTIFICADOR:id {: tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; pushScope((String)id); :} INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE {: popScope(); :};
+funcion ::= INT SEPARADOR IDENTIFICADOR:id
+              {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
+              {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
+          | FLOAT SEPARADOR IDENTIFICADOR:id
+              {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
+              {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
+          | BOOL SEPARADOR IDENTIFICADOR:id
+              {: tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
+              {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
+          | CHAR SEPARADOR IDENTIFICADOR:id
+              {: tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
+              {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
+          | STRING SEPARADOR IDENTIFICADOR:id
+              {: tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
+              {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :} ;
 
 /*Lista de 0 o mas funciones*/
 lista_funciones ::= funcion lista_funciones | /* vacio */ ;
@@ -278,13 +296,20 @@ parametros ::= lista_parametros | /* vacio */ ;
 lista_parametros ::= parametro | parametro COMA lista_parametros ;
 
 /* FIX: factorizado con parametro_resto para evitar conflictos y reducir repeticion */
-parametro ::= INT    SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "int", idleft); :}
-            | INT    SEPARADOR IDENTIFICADOR:id array parametro_resto {: agregarSimbolo((String)id, "int[]", idleft); :}
-            | FLOAT  SEPARADOR IDENTIFICADOR:id array parametro_resto {: agregarSimbolo((String)id, "float[]", idleft); :}
-            | FLOAT  SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "float", idleft); :}
-            | BOOL   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "bool", idleft); :}
-            | CHAR   SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "char", idleft); :}
-            | STRING SEPARADOR IDENTIFICADOR:id parametro_resto {: agregarSimbolo((String)id, "string", idleft); :};
+parametro ::= INT SEPARADOR IDENTIFICADOR:id parametro_resto
+                {: agregarSimbolo((String)id, "int", idleft); parametrosActuales.add("int"); :}
+            | INT SEPARADOR IDENTIFICADOR:id array parametro_resto
+                {: agregarSimbolo((String)id, "int[][]", idleft); parametrosActuales.add("int[][]"); :}
+            | FLOAT SEPARADOR IDENTIFICADOR:id array parametro_resto
+                {: agregarSimbolo((String)id, "float[][]", idleft); parametrosActuales.add("float[][]"); :}
+            | FLOAT SEPARADOR IDENTIFICADOR:id parametro_resto
+                {: agregarSimbolo((String)id, "float", idleft); parametrosActuales.add("float"); :}
+            | BOOL SEPARADOR IDENTIFICADOR:id parametro_resto
+                {: agregarSimbolo((String)id, "bool", idleft); parametrosActuales.add("bool"); :}
+            | CHAR SEPARADOR IDENTIFICADOR:id parametro_resto
+                {: agregarSimbolo((String)id, "char", idleft); parametrosActuales.add("char"); :}
+            | STRING SEPARADOR IDENTIFICADOR:id parametro_resto
+                {: agregarSimbolo((String)id, "string", idleft); parametrosActuales.add("string"); :} ;
 
 /* Valor por defecto opcional para parametro */
 parametro_resto ::= /* vacio */ 
@@ -296,7 +321,8 @@ parametro_resto ::= /* vacio */
 argumentos ::= lista_argumentos | /* vacio */ ;
 
 /* Argumentos separados por coma */
-lista_argumentos ::= expresion | expresion COMA lista_argumentos ;
+lista_argumentos ::= expresion:e {: argumentosActuales.add((String)e); :}
+                   | expresion:e COMA lista_argumentos {: argumentosActuales.add((String)e); :} ;
 
 /* Sentencias */
 sentencia ::= declaracion
@@ -312,32 +338,31 @@ sentencia ::= declaracion
             | error DELIMITADOR_EXP;
 
 /* Declaraciones */
-declaracion ::= 
-    INT SEPARADOR IDENTIFICADOR:id
-        {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :}
-    declaracion_resto:r
-        {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
+declaracion ::=  INT SEPARADOR IDENTIFICADOR:id
+                    {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :}
+                declaracion_resto:r
+                    {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
 
-  | FLOAT SEPARADOR IDENTIFICADOR:id
-        {: tipoDeclaracionActual = "float"; agregarSimbolo((String)id, "float", idleft); :}
-    declaracion_resto:r
-        {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
+              | FLOAT SEPARADOR IDENTIFICADOR:id
+                    {: tipoDeclaracionActual = "float"; agregarSimbolo((String)id, "float", idleft); :}
+                declaracion_resto:r
+                    {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
 
-  | BOOL SEPARADOR IDENTIFICADOR:id
-        {: tipoDeclaracionActual = "bool"; agregarSimbolo((String)id, "bool", idleft); :}
-    declaracion_variable_resto
+              | BOOL SEPARADOR IDENTIFICADOR:id
+                    {: tipoDeclaracionActual = "bool"; agregarSimbolo((String)id, "bool", idleft); :}
+                declaracion_variable_resto
 
-  | CHAR SEPARADOR IDENTIFICADOR:id
-        {: tipoDeclaracionActual = "char"; agregarSimbolo((String)id, "char", idleft); :}
-    declaracion_variable_resto
+              | CHAR SEPARADOR IDENTIFICADOR:id
+                    {: tipoDeclaracionActual = "char"; agregarSimbolo((String)id, "char", idleft); :}
+                declaracion_variable_resto
 
-  | STRING SEPARADOR IDENTIFICADOR:id
-        {: tipoDeclaracionActual = "string"; agregarSimbolo((String)id, "string", idleft); :}
-    declaracion_variable_resto
+              | STRING SEPARADOR IDENTIFICADOR:id
+                    {: tipoDeclaracionActual = "string"; agregarSimbolo((String)id, "string", idleft); :}
+                declaracion_variable_resto
 
-  | error SEPARADOR IDENTIFICADOR declaracion_resto
-        {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
-            + ": Tipo no reconocido, se asume 'int'"); :};
+              | error SEPARADOR IDENTIFICADOR declaracion_resto
+                    {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
+                        + ": Tipo no reconocido, se asume 'int'"); :};
 
 declaracion_resto ::= declaracion_variable_resto
                         {: RESULT = null; :}
@@ -388,14 +413,31 @@ asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {: String
 
 
 /* Llamada a funcion */
-llamada_funcion_exp ::= IDENTIFICADOR:id INICIO_PARENTESIS argumentos FIN_PARENTESIS{:
-          if (!tablaFunciones.containsKey((String)id)) {
-            System.err.println("[ERROR SEMANTICO] Linea " + idleft 
+llamada_funcion_exp ::= IDENTIFICADOR:id
+    {: argumentosActuales = new java.util.ArrayList<>(); :} INICIO_PARENTESIS argumentos FIN_PARENTESIS {:
+        if (!tablaFunciones.containsKey((String)id)) {
+            System.err.println("[ERROR SEMANTICO] Linea " + idleft
                 + ": funcion '" + id + "' no fue declarada.");
             RESULT = "error";
         } else {
-            RESULT = tablaFunciones.get((String)id); 
-        } :} ;
+            java.util.ArrayList<String> params = tablaParametros.get((String)id);
+            if (params != null && params.size() != argumentosActuales.size()) {
+                System.err.println("[ERROR SEMANTICO] Linea " + idleft
+                    + ": la funcion '" + id + "' espera " + params.size()
+                    + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
+            } else if (params != null) {
+                for (int i = 0; i < params.size(); i++) {
+                    if (!params.get(i).equals(argumentosActuales.get(i)) && !argumentosActuales.get(i).equals("error")) {
+                        System.err.println("[ERROR SEMANTICO] Linea " + idleft
+                            + ": argumento " + (i+1) + " de funcion '" + id
+                            + "' esperaba tipo '" + params.get(i)
+                            + "' pero se encontro '" + argumentosActuales.get(i) + "'.");
+                    }
+                }
+            }
+            RESULT = tablaFunciones.get((String)id);
+        }
+    :} ;
 
 /* Return y Break */
 return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipos(tipoFuncionActual, e, "return", eleft); :}
