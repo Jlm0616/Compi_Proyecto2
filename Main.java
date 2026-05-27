@@ -37,11 +37,11 @@ public class Main {
         @SuppressWarnings("deprecation")
         parser p = new parser(lexerParser);
         p.parse();
-        
-        if (parser.erroresSintacticos == 0 && Lexer.erroresLexicos == 0) {
-            System.out.println("Analisis sintactico: EXITOSO");
-        } else {
-            System.out.println("Analisis sintactico: FALLIDO (" + parser.erroresSintacticos + " error(es) sintactico(s), " + Lexer.erroresLexicos + " error(es) lexico(s))");
-        }
+
+        System.out.println();
+        System.out.println("\n=== ANALISIS DE COMPILACION ===" + " (Archivo: " + args[0] + ")");
+        System.out.println("Analisis lexico:     " + (Lexer.erroresLexicos == 0 ? "EXITOSO" : "FALLIDO (" + Lexer.erroresLexicos + " error(es) lexico(s))"));
+        System.out.println("Analisis sintactico: " + (parser.erroresSintacticos == 0 ? "EXITOSO" : "FALLIDO (" + parser.erroresSintacticos + " error(es) sintactico(s))"));
+        System.out.println("Analisis semantico:  " + (parser.erroresSemanticos == 0 ? "EXITOSO" : "FALLIDO (" + parser.erroresSemanticos + " error(es) semantico(s))"));
     }
 }

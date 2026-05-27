@@ -117,8 +117,7 @@ parser code {:
         if (pilaTablas.isEmpty()) return;
         java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
         if (ambito.containsKey(nombre)) {
-            System.err.println("[ERROR SEMANTICO] Línea " + linea 
-                + ": variable '" + nombre + "' ya fue declarada en este ámbito.");
+            errorSemantico("Linea " + linea + ": variable '" + nombre + "' ya fue declarada en este ambito.");
         } else {
             ambito.put(nombre, new Simbolo(nombre, tipo, linea));
         }
@@ -156,6 +155,15 @@ parser code {:
     // 2.2 ANALISIS SEMANTICO (Validaciones)
     // ---------------------------------------------------------------
     
+    // Contador de errores semanticos
+    public static int erroresSemanticos = 0;
+
+    // Reporta y cuenta un error semantico
+    public static void errorSemantico(String mensaje) {
+        erroresSemanticos++;
+        System.err.println("[ERROR SEMANTICO] " + mensaje);
+    }
+
     // Busca un simbolo en toda la pila de tablas (de interna a externa)
     public static Simbolo buscarSimbolo(String nombre) {
         for (java.util.HashMap<String, Simbolo> ambito : pilaTablas) {
@@ -168,7 +176,7 @@ parser code {:
     public static String verificarUso(String nombre, int linea) {
         Simbolo s = buscarSimbolo(nombre);
         if (s == null) {
-            System.err.println("[ERROR SEMANTICO] Linea " + linea + ": variable '" + nombre + "' no fue declarada.");
+            errorSemantico("Linea " + linea + ": variable '" + nombre + "' no fue declarada.");
             return "error";
         }
         return s.tipo;
@@ -180,15 +188,15 @@ parser code {:
 
         if (!tipo1.equals(tipo2)) {
             if (operacion.equals("asignacion")) {
-                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                errorSemantico("Linea " + linea 
                     + ": tipo incompatible en asignacion, se esperaba '" + tipo1 
                     + "' pero se encontro '" + tipo2 + "'.");
             } else if (operacion.equals("return")) {
-                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                errorSemantico("Linea " + linea 
                     + ": tipo de retorno incorrecto, se esperaba '" + tipo1 
                     + "' pero se encontro '" + tipo2 + "'.");
             } else {
-                System.err.println("[ERROR SEMANTICO] Linea " + linea 
+                errorSemantico("Linea " + linea 
                     + ": tipos incompatibles en operacion '" + operacion 
                     + "', se encontraron '" + tipo1 + "' y '" + tipo2 + "'.");
             }
@@ -241,7 +249,7 @@ non terminal String expresion, exp_logica, resto_logica;
 non terminal String exp_relacional, exp_aritmetica, resto_aritmetica;
 non terminal String exp_termino, resto_termino, exp_potencia, resto_potencia;
 non terminal String exp_factor, valor;
-non terminal array;
+non terminal String array;
 non terminal String acceso_arreglo;
 non terminal argumentos, lista_argumentos, bloque_simple, bloque_inicio;
 non terminal casoConstante, if_cabeza, else_cabeza, while_cabeza;
@@ -321,8 +329,11 @@ parametro_resto ::= /* vacio */
 argumentos ::= lista_argumentos | /* vacio */ ;
 
 /* Argumentos separados por coma */
-lista_argumentos ::= expresion:e {: argumentosActuales.add((String)e); :}
-                   | expresion:e COMA lista_argumentos {: argumentosActuales.add((String)e); :} ;
+lista_argumentos ::= expresion:e 
+                        {: argumentosActuales.add((String)e); :}
+                   | expresion:e 
+                        {: argumentosActuales.add((String)e); :}
+                     COMA lista_argumentos ;
 
 /* Sentencias */
 sentencia ::= declaracion
@@ -363,21 +374,37 @@ declaracion ::=  INT SEPARADOR IDENTIFICADOR:id
               | error SEPARADOR IDENTIFICADOR declaracion_resto
                     {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
                         + ": Tipo no reconocido, se asume 'int'"); :};
-
 declaracion_resto ::= declaracion_variable_resto
                         {: RESULT = null; :}
-                    | array DELIMITADOR_EXP
+                    | array:dim DELIMITADOR_EXP
                         {: RESULT = "[][]"; :}
-                    | array ASIGNACION INICIO_BLOQUE lista_valores:v FIN_BLOQUE DELIMITADOR_EXP
+                    | array:dim ASIGNACION INICIO_BLOQUE lista_valores:v FIN_BLOQUE DELIMITADOR_EXP
                         {: 
-                            if (!v.equals(tipoDeclaracionActual) && !v.equals("error")) {
-                                System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": tipo incompatible en inicializacion de arreglo, se esperaba '" + tipoDeclaracionActual + "' pero se encontro '" + v + "'.");
+                            String tipoBloque = v.contains(":") ? v.split(":")[0] : v;
+                            String conteo     = v.contains(":") ? v.split(":")[1] : "0";
+
+                            // Validar tipo
+                            if (!tipoBloque.equals(tipoDeclaracionActual) && !tipoBloque.equals("error")) {
+                                errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": tipo incompatible en inicializacion de arreglo, se esperaba '" + tipoDeclaracionActual + "' pero se encontro '" + tipoBloque + "'.");
+                            }
+
+                            // Validar dimensiones solo si dim no es null
+                            if (dim != null && !tipoBloque.equals("error")) {
+                                int filasDecl  = Integer.parseInt(dim.split(",")[0]);
+                                int colsDecl   = Integer.parseInt(dim.split(",")[1]);
+                                int totalDecl  = filasDecl * colsDecl;
+                                int totalBloque = Integer.parseInt(conteo);
+                                if (totalDecl != totalBloque) {
+                                    errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": dimensiones del arreglo no coinciden, se declaro " + filasDecl + "x" + colsDecl + " (" + totalDecl + " elementos)" + " pero se inicializo con " + totalBloque + " elemento(s).");
+                                }
                             }
                             RESULT = "[][]"; 
                         :}
-                    | array ASIGNACION expresion:e DELIMITADOR_EXP
+                    | array:dim ASIGNACION expresion:e DELIMITADOR_EXP
                         {: 
-                            System.err.println("[ERROR SEMANTICO] Linea " + eleft + ": un arreglo bidimensional no puede inicializarse con un valor escalar, use |: ... :|"); RESULT = "[][]"; 
+                            errorSemantico("Linea " + eleft 
+                                + ": un arreglo bidimensional no puede inicializarse con un valor escalar, use |: ... :|"); 
+                            RESULT = "[][]"; 
                         :};
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
@@ -388,21 +415,24 @@ lista_valores ::= valor_lista:v
                     {: RESULT = v; :}
                 | valor_lista:v COMA lista_valores:r
                     {: 
-                        if (!v.equals(r) && !v.equals("error") && !r.equals("error")) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left
-                                + ": tipos inconsistentes en inicializacion de arreglo, se encontro '"
-                                + v + "' y '" + r + "' en la misma lista.");
-                            RESULT = "error";
-                        } else if (v.equals("error") || r.equals("error")) {
-                            RESULT = "error";
+                        String tipoV = v.contains(":") ? v.split(":")[0] : v;
+                        String tipoR = r.contains(":") ? r.split(":")[0] : r;
+                        int contV   = v.contains(":") ? Integer.parseInt(v.split(":")[1]) : 1;
+                        int contR   = r.contains(":") ? Integer.parseInt(r.split(":")[1]) : 1;
+
+                        if (!tipoV.equals(tipoR) && !tipoV.equals("error") && !tipoR.equals("error")) {
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": tipos inconsistentes en inicializacion de arreglo, se encontro '" + tipoV + "' y '" + tipoR + "' en la misma lista.");
+                            RESULT = "error:0";
+                        } else if (tipoV.equals("error") || tipoR.equals("error")) {
+                            RESULT = "error:0";
                         } else {
-                            RESULT = v;
+                            RESULT = tipoV + ":" + (contV + contR);
                         }
                     :};
 
 /* Elemento individual en inicializacion de arreglo (puede ser anidado) */
 valor_lista ::= expresion:e 
-                    {: RESULT = e; :}
+                    {: RESULT = e + ":1"; :}
               | INICIO_BLOQUE lista_valores:v FIN_BLOQUE 
                     {: RESULT = v; :};
 
@@ -416,43 +446,40 @@ asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {: String
 llamada_funcion_exp ::= IDENTIFICADOR:id
     {: argumentosActuales = new java.util.ArrayList<>(); :} INICIO_PARENTESIS argumentos FIN_PARENTESIS {:
         if (!tablaFunciones.containsKey((String)id)) {
-            System.err.println("[ERROR SEMANTICO] Linea " + idleft
-                + ": funcion '" + id + "' no fue declarada.");
+            errorSemantico("Linea " + idleft + ": funcion '" + id + "' no fue declarada.");
             RESULT = "error";
         } else {
             java.util.ArrayList<String> params = tablaParametros.get((String)id);
             if (params != null && params.size() != argumentosActuales.size()) {
-                System.err.println("[ERROR SEMANTICO] Linea " + idleft
-                    + ": la funcion '" + id + "' espera " + params.size()
-                    + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
+                errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
+                RESULT = "error";
             } else if (params != null) {
                 for (int i = 0; i < params.size(); i++) {
                     if (!params.get(i).equals(argumentosActuales.get(i)) && !argumentosActuales.get(i).equals("error")) {
-                        System.err.println("[ERROR SEMANTICO] Linea " + idleft
-                            + ": argumento " + (i+1) + " de funcion '" + id
-                            + "' esperaba tipo '" + params.get(i)
-                            + "' pero se encontro '" + argumentosActuales.get(i) + "'.");
+                        errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + argumentosActuales.get(i) + "'.");
                     }
                 }
+                RESULT = tablaFunciones.get((String)id);
+            } else {
+                RESULT = tablaFunciones.get((String)id);
             }
-            RESULT = tablaFunciones.get((String)id);
         }
-    :} ;
+    :};
 
 /* Return y Break */
 return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipos(tipoFuncionActual, e, "return", eleft); :}
                    | RETURN error DELIMITADOR_EXP {: System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :};
 
-break_sentencia ::= BREAK DELIMITADOR_EXP{:
+break_sentencia ::= BREAK DELIMITADOR_EXP {:
         if (nivelBreak == 0) {
-            System.err.println("[ERROR SEMANTICO] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": 'break' fuera de un switch o do-while.");
+            errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": 'break' fuera de un switch o do-while.");
         } :} ;
 
 /* cin y cout */
 cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP
                   {: String t = verificarUso((String)id, idleft);
                      if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": cin solo puede leer variables int o float, se encontro tipo '" + t + "'.");
+                        errorSemantico("Linea " + idleft + ": cin solo puede leer variables int o float, se encontro tipo '" + t + "'.");
                      }
                  :};
 
@@ -472,7 +499,7 @@ lista_sentencias ::= sentencia lista_sentencias | /* vacio */ ;
 
 if_cabeza ::= IF INICIO_PARENTESIS expresion:e FIN_PARENTESIS{: 
                   if (!e.equals("bool") && !e.equals("error")) {
-                      System.err.println("[ERROR SEMANTICO] Linea " + eleft
+                      errorSemantico("Linea " + eleft
                           + ": la condicion del if debe ser de tipo bool, se encontro '" + e + "'.");
                   }
                   contadorIf++; nombreBloqueActual = "IF " + contadorIf; :} ;
@@ -487,7 +514,7 @@ if_sentencia ::= if_cabeza bloque_simple
 do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP{:
         nivelBreak--;
         if (!e.equals("bool") && !e.equals("error")) {
-            System.err.println("[ERROR SEMANTICO] Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+            errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
         } :} ;
 
 switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; nivelBreak++; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: nivelBreak--; popScope(); :}
@@ -515,8 +542,7 @@ exp_logica ::= exp_relacional:e1 resto_logica:r
                         if (r != null && !r.equals("error")) {
                             // Los operadores logicos (@ y #) siempre devuelven bool
                             if (!e1.equals("bool") || !r.equals("bool")) {
-                                System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left 
-                                    + ": Operadores logicos requieren tipos bool.");
+                                errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
                                 tipo = "error";
                             } else {
                                 tipo = "bool";
@@ -532,7 +558,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                     {: 
                         if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
                             (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
                             RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
@@ -542,7 +568,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                     {: 
                         if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
                             (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
                             RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
@@ -552,7 +578,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                     {: 
                         if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
                             (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
                             RESULT = validarTipos(e1, e2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left);
@@ -562,7 +588,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                     {: 
                         if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
                             (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
                             RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
@@ -595,10 +621,10 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                         String tipoR = r.contains("|") ? r.split("\\|")[0] : r;
                         String opR   = r.contains("|") ? r.split("\\|")[1] : "*";
                         if (opR.equals("%") && !e1.equals("int") && !e1.equals("error")) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + e1 + "'.");
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + e1 + "'.");
                             tipo = "error";
                         } else if (opR.equals("%") && !tipoR.equals("int") && !tipoR.equals("error")) {
-                            System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipoR + "'.");
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipoR + "'.");
                             tipo = "error";
                         } else {
                             String nombreOp = opR.equals("*") ? "multiplicacion" 
@@ -634,7 +660,7 @@ exp_factor ::= MENOS numero:n {: RESULT = n; :}
                 {: 
                     String t = verificarUso((String)id, idleft);
                     if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
-                        System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": '++' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
+                        errorSemantico("Linea " + idleft + ": '++' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
                     }
                     RESULT = t; 
                 :}
@@ -643,7 +669,7 @@ exp_factor ::= MENOS numero:n {: RESULT = n; :}
                 {: 
                     String t = verificarUso((String)id, idleft);
                     if (!t.equals("int") && !t.equals("float") && !t.equals("error")) {
-                        System.err.println("[ERROR SEMANTICO] Linea " + idleft + ": '--' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
+                        errorSemantico("Linea " + idleft + ": '--' solo aplica a variables int o float, se encontro tipo '" + t + "'.");
                     }
                     RESULT = t; 
                 :}
@@ -662,7 +688,9 @@ valor ::= numero:n {: RESULT = n; :}
         | INICIO_PARENTESIS exp_logica:e FIN_PARENTESIS {: RESULT = e; :} ;
 
 /* Arreglos bidimensionales */
-array ::= INICIO_INDICE expresion FIN_INDICE INICIO_INDICE expresion FIN_INDICE;
+/*Error Semantico cambiar si se ocupa*/
+array ::= INICIO_INDICE NUMERO_ENTERO:d1 FIN_INDICE INICIO_INDICE NUMERO_ENTERO:d2 FIN_INDICE
+            {: RESULT = ((Integer)d1) + "," + ((Integer)d2); :};
 
 /* Acceso a elemento de arreglo bidimensional */
 acceso_arreglo ::= IDENTIFICADOR:id INICIO_INDICE exp_aritmetica:e1 FIN_INDICE INICIO_INDICE exp_aritmetica:e2 FIN_INDICE
@@ -672,21 +700,21 @@ acceso_arreglo ::= IDENTIFICADOR:id INICIO_INDICE exp_aritmetica:e1 FIN_INDICE I
                        
                        // VERIFICAR QUE SEA UN ARREGLO BIDIMENSIONAL
                        if (!tipoArreglo.endsWith("[][]")) {
-                           System.err.println("[ERROR SEMANTICO] Linea " + idleft 
+                           errorSemantico("Linea " + idleft 
                                + ": La variable '" + id + "' no es un arreglo bidimensional, es de tipo '" + tipoArreglo + "'");
                        }
                        
                        // Verificar que los indices sean ENTEROS (no float)
                        if (!e1.equals("int")) {
-                           System.err.println("[ERROR SEMANTICO] Linea " + idleft 
+                           errorSemantico("Linea " + idleft 
                                + ": Indice de arreglo debe ser int, se encontro '" + e1 + "'");
                        }
                        if (!e2.equals("int")) {
-                           System.err.println("[ERROR SEMANTICO] Linea " + ((Symbol)CUP$parser$stack.peek()).left 
+                           errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left 
                                + ": Indice de arreglo debe ser int, se encontro '" + e2 + "'");
                        }
                        
-                       // Extraer tipo base (quitar "[]")
+                       // Extraer tipo base (quitar "[][]")
                        String tipoBase = tipoArreglo;
                        if (tipoBase.endsWith("[][]")) {
                            tipoBase = tipoBase.substring(0, tipoBase.length() - 4);

@@ -1,14 +1,13 @@
-int ~ suma <| int ~ a |> |:
-    return ~ a !
-:|
-
 empty ~ __main__ ~ <| |> |:
-    ¡¡ argumento correcto
-    int ~ x <- suma <| 5 |> !
 
-    ¡¡ argumento de tipo incorrecto
-    int ~ y <- suma <| "hola" |> !
+    ¡¡ Correcto: 2x2 con 4 elementos
+    int ~ matriz <<2>> <<2>> <- |: |: 3, 4 :| , |: 3, 4 :| :| !
+    int ~ x <- 5 !
 
-    ¡¡ numero de argumentos incorrecto
-    int ~ z <- suma <| 1, 2 |> !
+    ¡¡ Incorrecto: 2x2 pero 3 elementos por fila
+    int ~ matriz <<2>> <<2>> <- |: |: 3, 4 :| , |: 3, 4 :| :| !
+
+    ¡¡ Incorrecto: 2x2 pero solo 1 fila
+    int ~ matriz <<2>> <<2>> <- |: |: 3, 4 :| , |: 3, 4 :| :| !
+
 :|
