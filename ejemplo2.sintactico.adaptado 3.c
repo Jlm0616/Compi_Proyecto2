@@ -8,7 +8,7 @@ float~_mi_  <| int~_dif_, char~_otra_|>   |:
 			_var_ <- _var_ - 1! ¡¡semantico
 		 :|
 		 
-		 while <|true @ false|> !¡¡ REPARAR ESTO Y CON greather_te Y OTROS
+		 while <| <|true @ greather_te <|5, <| 5+3 |> |> |> |> !¡¡ REPARAR ESTO Y CON greather_te Y OTROS
 		int ~ _var2_ !
 			cin ~ _var2_ !
 			break!

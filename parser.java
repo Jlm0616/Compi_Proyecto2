@@ -2439,9 +2439,10 @@ class CUP$parser$actions {
 		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
 		 
-                  if (!e.equals("bool") && !e.equals("error")) {
+                  String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
+                  if (!tipoE.equals("bool") && !tipoE.equals("error")) {
                       errorSemantico("Linea " + eleft
-                          + ": la condicion del if debe ser de tipo bool, se encontro '" + e + "'.");
+                          + ": la condicion del if debe ser de tipo bool, se encontro '" + tipoE + "'.");
                   }
                   contadorIf++; nombreBloqueActual = "IF " + contadorIf; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("if_cabeza",50, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
@@ -2502,8 +2503,9 @@ class CUP$parser$actions {
 		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-2)).value;
 		
         nivelBreak--;
-        if (!e.equals("bool") && !e.equals("error")) {
-            errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+        String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
+        if (!tipoE.equals("bool") && !tipoE.equals("error")) {
+            errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + tipoE + "'.");
         } 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("do_while_sentencia",25, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-6)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
@@ -2643,17 +2645,19 @@ class CUP$parser$actions {
 		int rleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int rright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String r = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 String tipo = e1;
-                        if (r != null && !r.equals("error")) {
-                            // Los operadores logicos (@ y #) siempre devuelven bool
-                            if (!e1.equals("bool") || !r.equals("bool")) {
-                                errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
-                                tipo = "error";
-                            } else {
-                                tipo = "bool";
-                            }
+		 
+                    String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                    String tipoR = r != null ? (r.contains("|") ? r.split("\\|")[0] : r) : null;
+                    String tipo = tipo1;
+                    if (tipoR != null && !tipoR.equals("error")) {
+                        if (!tipo1.equals("bool") || !tipoR.equals("bool")) {
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
+                            tipo = "error";
+                        } else {
+                            tipo = "bool";
                         }
-                        RESULT = tipo; 
+                    }
+                    RESULT = tipo; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_logica",32, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2693,12 +2697,16 @@ class CUP$parser$actions {
 		int e2right = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e2 = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
 		 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        // LIMPIAR TIPOS
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_relacional",34, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
@@ -2716,12 +2724,15 @@ class CUP$parser$actions {
 		int e2right = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e2 = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
 		 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_relacional",34, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
@@ -2739,12 +2750,15 @@ class CUP$parser$actions {
 		int e2right = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e2 = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
 		 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_relacional",34, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
@@ -2762,12 +2776,15 @@ class CUP$parser$actions {
 		int e2right = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e2 = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
 		 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_relacional",34, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
@@ -2784,7 +2801,11 @@ class CUP$parser$actions {
 		int e2left = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
 		int e2right = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e2 = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
-		 RESULT = validarTipos(e1, e2, "equal", ((Symbol)CUP$parser$stack.peek()).left); 
+		 
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        RESULT = validarTipos(tipo1, tipo2, "equal", ((Symbol)CUP$parser$stack.peek()).left); 
+                    
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_relacional",34, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2799,7 +2820,11 @@ class CUP$parser$actions {
 		int e2left = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
 		int e2right = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		String e2 = (String)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
-		 RESULT = validarTipos(e1, e2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); 
+		 
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        RESULT = validarTipos(tipo1, tipo2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); 
+                    
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_relacional",34, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-5)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

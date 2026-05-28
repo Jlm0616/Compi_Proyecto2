@@ -559,9 +559,10 @@ bloque_simple ::= bloque_inicio lista_sentencias FIN_BLOQUE {: popScope(); :};
 lista_sentencias ::= sentencia lista_sentencias | /* vacio */ ;
 
 if_cabeza ::= IF INICIO_PARENTESIS expresion:e FIN_PARENTESIS{: 
-                  if (!e.equals("bool") && !e.equals("error")) {
+                  String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
+                  if (!tipoE.equals("bool") && !tipoE.equals("error")) {
                       errorSemantico("Linea " + eleft
-                          + ": la condicion del if debe ser de tipo bool, se encontro '" + e + "'.");
+                          + ": la condicion del if debe ser de tipo bool, se encontro '" + tipoE + "'.");
                   }
                   contadorIf++; nombreBloqueActual = "IF " + contadorIf; :} ;
 
@@ -574,8 +575,9 @@ if_sentencia ::= if_cabeza bloque_simple
 
 do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP{:
         nivelBreak--;
-        if (!e.equals("bool") && !e.equals("error")) {
-            errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + e + "'.");
+        String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
+        if (!tipoE.equals("bool") && !tipoE.equals("error")) {
+            errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + tipoE + "'.");
         } :} ;
 
 switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; nivelBreak++; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: nivelBreak--; popScope(); :}
@@ -599,17 +601,19 @@ caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias;
 expresion ::= exp_logica:e{: RESULT = e; :};
 
 exp_logica ::= exp_relacional:e1 resto_logica:r
-                    {: String tipo = e1;
-                        if (r != null && !r.equals("error")) {
-                            // Los operadores logicos (@ y #) siempre devuelven bool
-                            if (!e1.equals("bool") || !r.equals("bool")) {
-                                errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
-                                tipo = "error";
-                            } else {
-                                tipo = "bool";
-                            }
+                {: 
+                    String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                    String tipoR = r != null ? (r.contains("|") ? r.split("\\|")[0] : r) : null;
+                    String tipo = tipo1;
+                    if (tipoR != null && !tipoR.equals("error")) {
+                        if (!tipo1.equals("bool") || !tipoR.equals("bool")) {
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
+                            tipo = "error";
+                        } else {
+                            tipo = "bool";
                         }
-                        RESULT = tipo; :};
+                    }
+                    RESULT = tipo; :};
 
 /* Operadores logicos binarios en cadena (and, or) */
 resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESULT = e; :}
@@ -617,48 +621,69 @@ resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESU
 
 exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
                     {: 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        // LIMPIAR TIPOS
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     :}
                  | LESS_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
                     {: 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     :}
                  | GREATER_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
                     {: 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "greather_t", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     :}
                  | GREATER_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
                     {: 
-                        if ((!e1.equals("int") && !e1.equals("float") && !e1.equals("error")) ||
-                            (!e2.equals("int") && !e2.equals("float") && !e2.equals("error"))) {
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        
+                        if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
+                            (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
                             RESULT = "error";
                         } else {
-                            RESULT = validarTipos(e1, e2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
+                            RESULT = validarTipos(tipo1, tipo2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
                         }
                     :}
                  | EQUAL INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS
-                    {: RESULT = validarTipos(e1, e2, "equal", ((Symbol)CUP$parser$stack.peek()).left); :}
+                    {: 
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        RESULT = validarTipos(tipo1, tipo2, "equal", ((Symbol)CUP$parser$stack.peek()).left); 
+                    :}
                  | N_EQUAL INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS
-                    {: RESULT = validarTipos(e1, e2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); :}
+                    {: 
+                        String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
+                        RESULT = validarTipos(tipo1, tipo2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); 
+                    :}
                  | exp_aritmetica:e {: RESULT = e; :};
 
 /* punto g: suma y resta */
