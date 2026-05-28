@@ -33,10 +33,14 @@ public class Main {
 
         // ===== SEGUNDO LEXER - Para el parser (MUESTRA ERRORES) =====
         Lexer lexerParser = new Lexer(new FileReader(args[0]));
-        
+
+        GeneradorCodigo.iniciar("codigo_intermedio.txt");
+
         @SuppressWarnings("deprecation")
         parser p = new parser(lexerParser);
         p.parse();
+
+        GeneradorCodigo.cerrar();
 
         System.out.println();
         System.out.println("\n=== ANALISIS DE COMPILACION ===" + " (Archivo: " + args[0] + ")");
