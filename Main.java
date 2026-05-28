@@ -1,6 +1,14 @@
 import java.io.*;
 
 public class Main {
+
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_DARK_BLUE = "\u001B[34;2m";
+    public static final String ANSI_RED_BRIGHT = "\u001B[91m";
+
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
             System.out.println("Uso: java Main <archivo>");
@@ -44,8 +52,14 @@ public class Main {
 
         System.out.println();
         System.out.println("\n=== ANALISIS DE COMPILACION ===" + " (Archivo: " + args[0] + ")");
-        System.out.println("Analisis lexico:     " + (Lexer.erroresLexicos == 0 ? "EXITOSO" : "FALLIDO (" + Lexer.erroresLexicos + " error(es) lexico(s))"));
-        System.out.println("Analisis sintactico: " + (parser.erroresSintacticos == 0 ? "EXITOSO" : "FALLIDO (" + parser.erroresSintacticos + " error(es) sintactico(s))"));
-        System.out.println("Analisis semantico:  " + (parser.erroresSemanticos == 0 ? "EXITOSO" : "FALLIDO (" + parser.erroresSemanticos + " error(es) semantico(s))"));
+
+        String lexicoMsg = (Lexer.erroresLexicos == 0) ? ANSI_GREEN + "Analisis lexico:     EXITOSO" : ANSI_RED + "Analisis lexico:     FALLIDO (" + Lexer.erroresLexicos + " error(es) lexico(s))";
+        System.out.println(lexicoMsg + ANSI_RESET);
+
+        String sintacticoMsg = (parser.erroresSintacticos == 0) ? ANSI_BLUE + "Analisis sintactico: EXITOSO" : ANSI_RED + "Analisis sintactico: FALLIDO (" + parser.erroresSintacticos + " error(es) sintactico(s))";
+        System.out.println(sintacticoMsg + ANSI_RESET);
+
+        String semanticoMsg = (parser.erroresSemanticos == 0) ? ANSI_RED_BRIGHT + "Analisis semantico:  EXITOSO" : ANSI_RED + "Analisis semantico:  FALLIDO (" + parser.erroresSemanticos + " error(es) semantico(s))";
+        System.out.println(semanticoMsg + ANSI_RESET);
     }
 }

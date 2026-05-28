@@ -984,6 +984,13 @@ public class parser extends java_cup.runtime.lr_parser {
 
 
 
+    // Cambios de color
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_BLUE_DARK = "\u001B[34;2m";
+    public static final String ANSI_CYAN = "\u001B[36m";
+
     // ---------------------------------------------------------------
     // 2.1 ANALISIS SINTACTICO (Estructuras de datos para parsing)
     // ---------------------------------------------------------------
@@ -1025,6 +1032,7 @@ public class parser extends java_cup.runtime.lr_parser {
     static int contadorElse = 0;
     static int contadorWhile = 0;
     static int nivelBreak = 0;
+
     // Nombre del bloque actual (ej: "IF 1", "SWITCH 2", etc.)
     static String nombreBloqueActual = "BLOQUE";
 
@@ -1114,8 +1122,8 @@ public class parser extends java_cup.runtime.lr_parser {
     // Manejador de errores sintacticos (token inesperado)
     public void syntax_error(java_cup.runtime.Symbol s) {
         erroresSintacticos++;
-        System.err.println("[ERROR SINTACTICO] Linea " + s.left + ", columna " + s.right
-                + ": token inesperado -> '" + s.value + "'");
+        System.err.println(ANSI_BLUE + "[ERROR SINTACTICO] Linea " + s.left + ", columna " + s.right
+                + ": token inesperado -> '" + s.value + "'" + ANSI_RESET);
     }
 
     public static void actualizarTipoSimbolo(String nombre, String nuevoTipo) {
@@ -1130,8 +1138,13 @@ public class parser extends java_cup.runtime.lr_parser {
     // Manejador de errores sintacticos irrecuperables
     public void unrecovered_syntax_error(java_cup.runtime.Symbol s) {
         erroresSintacticos++;
-        System.err.println("[ERROR SINTACTICO IRRECUPERABLE] Linea " + s.left
-                + ": no se pudo continuar el analisis.");
+        System.err.println(ANSI_BLUE_DARK + "[ERROR SINTACTICO IRRECUPERABLE] Linea " + s.left
+                + ": no se pudo continuar el analisis." + ANSI_RESET);
+    }
+
+    // Reporta mensajes de recuperación de errores
+    public static void mensajeRecuperacion(String mensaje) {
+        System.err.println(ANSI_CYAN + "[RECUPERACION] " + mensaje + ANSI_RESET);
     }
 
     // ---------------------------------------------------------------
@@ -1144,7 +1157,7 @@ public class parser extends java_cup.runtime.lr_parser {
     // Reporta y cuenta un error semantico
     public static void errorSemantico(String mensaje) {
         erroresSemanticos++;
-        System.err.println("[ERROR SEMANTICO] " + mensaje);
+        System.err.println(ANSI_RED + "[ERROR SEMANTICO] " + mensaje + ANSI_RESET);
     }
 
     // Busca un simbolo en toda la pila de tablas (de interna a externa)
@@ -1970,8 +1983,7 @@ class CUP$parser$actions {
           case 64: // declaracion ::= error SEPARADOR IDENTIFICADOR declaracion_resto 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
-                        + ": Tipo no reconocido, se asume 'int'"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("declaracion",12, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2183,7 +2195,7 @@ class CUP$parser$actions {
           case 77: // asignacion ::= IDENTIFICADOR error expresion DELIMITADOR_EXP 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("asignacion",17, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2250,7 +2262,7 @@ class CUP$parser$actions {
           case 81: // return_sentencia ::= RETURN error DELIMITADOR_EXP 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("return_sentencia",18, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2297,7 +2309,7 @@ class CUP$parser$actions {
           case 85: // cout_sentencia ::= COUT error DELIMITADOR_EXP 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("cout_sentencia",21, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2476,7 +2488,7 @@ class CUP$parser$actions {
           case 104: // if_sentencia ::= IF error bloque_simple 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("if_sentencia",24, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2521,7 +2533,7 @@ class CUP$parser$actions {
           case 108: // switch_sentencia ::= SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("switch_sentencia",26, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-4)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2595,7 +2607,7 @@ class CUP$parser$actions {
           case 116: // caso ::= CASE error DOS_PUNTOS lista_sentencias 
             {
               Object RESULT =null;
-		 System.err.println("[RECUPERACION] Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); 
+		 mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("caso",29, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
