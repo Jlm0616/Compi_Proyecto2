@@ -419,6 +419,11 @@ class Lexer implements java_cup.runtime.Scanner {
   private boolean zzEOFDone;
 
   /* user code: */
+
+    // Código de colores ANSI
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String ANSI_GREEN = "\u001B[32m";
+
     /* Contador de errores lexicos */
     public static int erroresLexicos = 0;
     
@@ -439,7 +444,7 @@ class Lexer implements java_cup.runtime.Scanner {
     private void errorLexico(String mensaje) {
         erroresLexicos++;
         if (!silenciarErrores) {
-            System.err.println("[ERROR LEXICO] Linea " + (yyline + 1) + ": " + mensaje);
+            System.err.println(ANSI_GREEN + "[ERROR LEXICO] Linea " + (yyline + 1) + ": " + mensaje + ANSI_RESET);
         }
     }
 

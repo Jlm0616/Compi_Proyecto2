@@ -1,26 +1,4 @@
- empty ~ __main__ ~ <|  |>   |: ¡¡ semantico tipo void
-	int ~ _i_ <- 5!
-	int ~_arr_<<67>><<67>>!  ¡¡ semantico
-	bool ~ _b1_ ! ¡¡semantico
-	string ~ _s1_ ! ¡¡semantico
-
-	
-	greather_t <|10, 5|>  !    ¡¡ true
-	greather_t <|3, 8|>   !   ¡¡ false
-
-	¡¡ Menor o igual
-	less_te <|5, 10|>    !    ¡¡ true
-	less_te <|8, 3|>     !    ¡¡ false
-
-	¡¡ Menor que
-	less_t <|5, 10|>    !     ¡¡ true
-	less_t <|8, 3|>     !     ¡¡ false
-
-	¡¡ Igual
-	equal <|10, 10|>   !      ¡¡ true
-	equal <|5, 8|>     !      ¡¡ false
-
-	¡¡ Diferente
-	n_equal <|10, 5|>  !      ¡¡ true
-	n_equal <|5, 5|>   !      ¡¡ false
- :| 
+empty ~ __main__ ~ <| |> |:
+    int ~ x <- 5 + 3 !
+    int ~ y <- x - 2 !
+:|

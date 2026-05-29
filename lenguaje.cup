@@ -43,6 +43,7 @@ parser code {:
     static java.util.HashMap<String, String> tablaFunciones = new java.util.HashMap<>();
     static java.util.ArrayList<String> argumentosActuales = new java.util.ArrayList<>();
     static String ultimoTipo = "int";
+    static String nombreDeclaracionActual = "";
 
     // Pila con los nombres de cada ambito (para reportes)   
     static java.util.Stack<String> nombresAmbitos = new java.util.Stack<>();
@@ -400,30 +401,29 @@ sentencia ::= declaracion
             | error DELIMITADOR_EXP;
 
 /* Declaraciones */
-declaracion ::=  INT SEPARADOR IDENTIFICADOR:id
-                    {: tipoDeclaracionActual = "int"; agregarSimbolo((String)id, "int", idleft); :}
+declaracion ::= INT SEPARADOR IDENTIFICADOR:id
+                {: tipoDeclaracionActual = "int"; nombreDeclaracionActual = (String)id; agregarSimbolo((String)id, "int", idleft); :}
                 declaracion_resto:r
-                    {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
+                {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
 
-              | FLOAT SEPARADOR IDENTIFICADOR:id
-                    {: tipoDeclaracionActual = "float"; agregarSimbolo((String)id, "float", idleft); :}
+            | FLOAT SEPARADOR IDENTIFICADOR:id
+                {: tipoDeclaracionActual = "float"; nombreDeclaracionActual = (String)id; agregarSimbolo((String)id, "float", idleft); :}
                 declaracion_resto:r
-                    {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
+                {: if (r != null) actualizarTipoSimbolo((String)id, tipoDeclaracionActual + r); :}
 
-              | BOOL SEPARADOR IDENTIFICADOR:id
-                    {: tipoDeclaracionActual = "bool"; agregarSimbolo((String)id, "bool", idleft); :}
+            | BOOL SEPARADOR IDENTIFICADOR:id
+                {: tipoDeclaracionActual = "bool"; nombreDeclaracionActual = (String)id; agregarSimbolo((String)id, "bool", idleft); :}
                 declaracion_variable_resto
 
-              | CHAR SEPARADOR IDENTIFICADOR:id
-                    {: tipoDeclaracionActual = "char"; agregarSimbolo((String)id, "char", idleft); :}
+            | CHAR SEPARADOR IDENTIFICADOR:id
+                {: tipoDeclaracionActual = "char"; nombreDeclaracionActual = (String)id; agregarSimbolo((String)id, "char", idleft); :}
                 declaracion_variable_resto
 
-              | STRING SEPARADOR IDENTIFICADOR:id
-                    {: tipoDeclaracionActual = "string"; agregarSimbolo((String)id, "string", idleft); :}
+            | STRING SEPARADOR IDENTIFICADOR:id
+                {: tipoDeclaracionActual = "string"; nombreDeclaracionActual = (String)id; agregarSimbolo((String)id, "string", idleft); :}
                 declaracion_variable_resto
 
-              | error SEPARADOR IDENTIFICADOR declaracion_resto
-                    {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :};
+            | error SEPARADOR IDENTIFICADOR declaracion_resto {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :} ;
 
 declaracion_resto ::= declaracion_variable_resto
                         {: RESULT = null; :}
@@ -460,10 +460,11 @@ declaracion_resto ::= declaracion_variable_resto
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
     | ASIGNACION expresion:e DELIMITADOR_EXP {: 
+          System.err.println("DEBUG e='" + e + "'");
           String tipoExp = e.contains("|") ? e.split("\\|")[0] : e;
           validarTipos(tipoDeclaracionActual, tipoExp, "asignacion", eleft);
           String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
-          GeneradorCodigo.emitir("    " + "# decl " + tipoDeclaracionActual + " = " + lugarE); :};
+          GeneradorCodigo.emitir("    " + nombreDeclaracionActual + " = " + lugarE); :} ;
 
 /* Lista de valores para inicializar arreglo */              
 lista_valores ::= valor_lista:v 
@@ -604,16 +605,17 @@ exp_logica ::= exp_relacional:e1 resto_logica:r
                 {: 
                     String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                     String tipoR = r != null ? (r.contains("|") ? r.split("\\|")[0] : r) : null;
-                    String tipo = tipo1;
                     if (tipoR != null && !tipoR.equals("error")) {
                         if (!tipo1.equals("bool") || !tipoR.equals("bool")) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
-                            tipo = "error";
+                            RESULT = "error|?";
                         } else {
-                            tipo = "bool";
+                            RESULT = "bool|?";
                         }
+                    } else {
+                        RESULT = e1;
                     }
-                    RESULT = tipo; :};
+                :};
 
 /* Operadores logicos binarios en cadena (and, or) */
 resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESULT = e; :}
@@ -715,24 +717,26 @@ resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r {:
                     | /* vacio */  {: RESULT = null; :};
 
 exp_termino ::= exp_factor:e1 resto_termino:r {: 
-                    String tipo = e1;
+                    String tipo = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                    String lugar = e1.contains("|") ? e1.split("\\|")[1] : e1;
                     if (r != null && !r.equals("error")) {
                         String tipoR = r.contains("|") ? r.split("\\|")[0] : r;
                         String opR   = r.contains("|") ? r.split("\\|")[1] : "*";
-                        if (opR.equals("%") && !e1.equals("int") && !e1.equals("error")) {
-                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + e1 + "'.");
-                            tipo = "error";
-                        } else if (opR.equals("%") && !tipoR.equals("int") && !tipoR.equals("error")) {
-                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipoR + "'.");
-                            tipo = "error";
+                        if (opR.equals("%") && !tipo.equals("int") && !tipo.equals("error")) {
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipo + "'.");
+                            RESULT = "error|?";
                         } else {
                             String nombreOp = opR.equals("*") ? "multiplicacion" 
                                            : opR.equals("/") ? "division" 
                                            : "modulo";
-                            tipo = validarTipos(e1, tipoR, nombreOp, ((Symbol)CUP$parser$stack.peek()).left);
+                            validarTipos(tipo, tipoR, nombreOp, ((Symbol)CUP$parser$stack.peek()).left);
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + tipoR);
+                            RESULT = tipo + "|" + t;
                         }
+                    } else {
+                        RESULT = e1;
                     }
-                    RESULT = tipo;
                 :};
 
 /* Operadores de multiplicacion, division y modulo en cadena */
