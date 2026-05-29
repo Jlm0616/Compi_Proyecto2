@@ -1,59 +1,16 @@
 # ===== CODIGO INTERMEDIO =====
 
 main:
-    t0 = 5
+    t0 = 0
     x = t0
-    t1 = 3
-    t2 = x > t1
-    ifFalse t2 goto L0
-    write x
-    goto L1
-L0:
-    write x
-L1:
-    t3 = 65
-    _x_ = t3
-_switch1:
-    tsw1 = 1
-    t4 = 83
-_case1_1:
-    t5 = tsw1 == 0
-    if t5 goto _case1_1_b
-    t6 = _x_ == t4
-    if t6 goto _case1_1_b
-    goto _case1_1_e
-_case1_1_b:
-    tsw1 = 0
-    t7 = "es S"
-    write t7
-_case1_1_e:
-    t8 = 65
-_case1_2:
-    t9 = tsw1 == 0
-    if t9 goto _case1_2_b
-    t10 = _x_ == t8
-    if t10 goto _case1_2_b
-    goto _case1_2_e
-_case1_2_b:
-    tsw1 = 0
-    t11 = "es A"
-    write t11
-    goto _sw1_end
-_case1_2_e:
-    t12 = 53
-_case1_3:
-    t13 = tsw1 == 0
-    if t13 goto _case1_3_b
-    t14 = _x_ == t12
-    if t14 goto _case1_3_b
-    goto _case1_3_e
-_case1_3_b:
-    tsw1 = 0
-    t15 = "es cinco"
-    write t15
-_case1_3_e:
-_default1:
-    t16 = "otro"
-    write t16
-_sw1_end:
+    t1 = 0
+    suma = t1
+_dowhile1_start:
+    read x
+    t2 = suma + x
+    suma = t2
+    t3 = 100
+    if ? goto _dowhile1_start
+_dowhile1_end:
+    write suma
 # ===== FIN DEL CODIGO INTERMEDIO =====

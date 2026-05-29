@@ -1242,6 +1242,8 @@ public class parser extends java_cup.runtime.lr_parser {
     // Bandera para saber si ya hay default en el switch actual
     private static java.util.HashMap<Integer, Boolean> mapaDefaultSwitch = new java.util.HashMap<>();
     
+    private static java.util.HashMap<Integer, String> mapaEtqInicioWhile = new java.util.HashMap<>();
+
     private void setTipoSwitch(int switchId, String tipo) {
         mapaTipoSwitch.put(switchId, tipo);
     }
@@ -1289,6 +1291,14 @@ public class parser extends java_cup.runtime.lr_parser {
     private String getEtqCasoActual(int swId, int casoId) {
         return mapaEtqCasos.getOrDefault(swId, new java.util.HashMap<>())
                            .getOrDefault(casoId, "_sw" + swId + "_end");
+    }
+
+    private void setEtqInicioWhile(int id, String etq) {
+        mapaEtqInicioWhile.put(id, etq);
+    }
+
+    private String getEtqInicioWhile(int id) {
+        return mapaEtqInicioWhile.getOrDefault(id, "_dowhile" + id + "_start");
     }
 
 
@@ -2620,7 +2630,7 @@ class CUP$parser$actions {
           case 100: // while_cabeza ::= DO 
             {
               Object RESULT =null;
-		 contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; 
+		 contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; String etqInicio = "_dowhile" + contadorWhile + "_start"; GeneradorCodigo.emitirEtiqueta(etqInicio); setEtqInicioWhile(contadorWhile, etqInicio); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("while_cabeza",49, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2699,7 +2709,13 @@ class CUP$parser$actions {
         String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
         if (!tipoE.equals("bool") && !tipoE.equals("error")) {
             errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + tipoE + "'.");
-        } 
+        }
+        String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
+        String etqInicio = getEtqInicioWhile(contadorWhile);
+        String etqFin    = "_dowhile" + contadorWhile + "_end";
+        GeneradorCodigo.emitir("    if " + lugarE + " goto " + etqInicio);
+        GeneradorCodigo.emitirEtiqueta(etqFin);
+    
               CUP$parser$result = parser.getSymbolFactory().newSymbol("do_while_sentencia",25, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-6)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

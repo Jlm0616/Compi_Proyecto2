@@ -1,22 +1,11 @@
 empty ~ __main__ ~ <| |> |:
-    int ~ x <- 5 !
-    if <| greather_t <| x, 3 |> |> |:
-        cout ~ x !
-    :| else |:
-        cout ~ x !
-    :|
+    int ~ x <- 0 !
+    int ~ suma <- 0 !
 
-    char ~ _x_ <- 'A'!
-    switch ~ <| _x_ |> 
-    |: 
-        case ~ 'S': 
-            cout ~ "es S" !
-        case ~ 'A': 
-            cout ~ "es A" !
-            break!
-        case ~ '5': 
-            cout ~ "es cinco" !
-        default: 
-            cout ~ "otro" !
-    :|
+    do |:
+        cin ~ x !
+        suma <- suma + x !
+    :| while <| less_t <| suma, 100 |> |> !
+
+    cout ~ suma !
 :|
