@@ -1536,7 +1536,8 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); 
+ tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$3",57, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1562,7 +1563,8 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); 
+ tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$4",58, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1588,7 +1590,8 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); 
+ tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$5",59, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1614,7 +1617,8 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); 
+ tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$6",60, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2326,21 +2330,26 @@ class CUP$parser$actions {
 		
         if (!tablaFunciones.containsKey((String)id)) {
             errorSemantico("Linea " + idleft + ": funcion '" + id + "' no fue declarada.");
-            RESULT = "error";
+            RESULT = "error|?";
         } else {
             java.util.ArrayList<String> params = tablaParametros.get((String)id);
             if (params != null && params.size() != argumentosActuales.size()) {
                 errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
-                RESULT = "error";
+                RESULT = "error|?";
             } else if (params != null) {
                 for (int i = 0; i < params.size(); i++) {
-                    if (!params.get(i).equals(argumentosActuales.get(i)) && !argumentosActuales.get(i).equals("error")) {
-                        errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + argumentosActuales.get(i) + "'.");
+                    String tipoArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[0] : argumentosActuales.get(i);
+                    if (!params.get(i).equals(tipoArg) && !tipoArg.equals("error")) {
+                        errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + tipoArg + "'.");
                     }
+                    String lugarArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[1] : argumentosActuales.get(i);
+                    GeneradorCodigo.emitir("    param " + lugarArg);
                 }
-                RESULT = tablaFunciones.get((String)id);
+                String t = GeneradorCodigo.nuevoTemp();
+                GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + params.size());
+                RESULT = tablaFunciones.get((String)id) + "|" + t;
             } else {
-                RESULT = tablaFunciones.get((String)id);
+                RESULT = tablaFunciones.get((String)id) + "|?";
             }
         }
     

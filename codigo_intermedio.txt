@@ -1,16 +1,55 @@
 # ===== CODIGO INTERMEDIO =====
 
+suma:
+    t0 = a + b
+    return t0
+
+esMayor:
+    t1 = x > y
+    return t1
+
 main:
-    t0 = 0
-    x = t0
-    t1 = 0
-    suma = t1
+    t2 = 3
+    t3 = 5
+    param t2
+    param t3
+    t4 = call suma, 2
+    resultado = t4
+    write resultado
+    t5 = 5
+    t6 = resultado > t5
+    ifFalse t6 goto L0
+    write resultado
+    goto L1
+L0:
+    write resultado
+L1:
+    t7 = 0
+    contador = t7
 _dowhile1_start:
-    read x
-    t2 = suma + x
-    suma = t2
-    t3 = 100
-    if ? goto _dowhile1_start
+    t8 = 1
+    t9 = contador + t8
+    contador = t9
+    t10 = 3
+    t11 = contador > t10
+    if t11 goto _dowhile1_start
 _dowhile1_end:
-    write suma
+_switch1:
+    tsw1 = 1
+    t12 = 8
+_case1_1:
+    t13 = tsw1 == 0
+    if t13 goto _case1_1_b
+    t14 = resultado == t12
+    if t14 goto _case1_1_b
+    goto _case1_1_e
+_case1_1_b:
+    tsw1 = 0
+    write resultado
+    goto _sw1_end
+_case1_1_e:
+_default1:
+    write resultado
+_sw1_end:
+    read resultado
 # ===== FIN DEL CODIGO INTERMEDIO =====

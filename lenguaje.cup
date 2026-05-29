@@ -432,22 +432,26 @@ funcion ::= INT SEPARADOR IDENTIFICADOR:id
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | FLOAT SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | BOOL SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              {: tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | CHAR SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              {: tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | STRING SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              {: tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :} ;
-
+              
 /*Lista de 0 o mas funciones*/
 lista_funciones ::= funcion lista_funciones | /* vacio */ ;
 
@@ -609,27 +613,34 @@ asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {:
 
 /* Llamada a funcion */
 llamada_funcion_exp ::= IDENTIFICADOR:id
-    {: argumentosActuales = new java.util.ArrayList<>(); :} INICIO_PARENTESIS argumentos FIN_PARENTESIS {:
+    {: argumentosActuales = new java.util.ArrayList<>(); :} 
+    INICIO_PARENTESIS argumentos FIN_PARENTESIS 
+    {:
         if (!tablaFunciones.containsKey((String)id)) {
             errorSemantico("Linea " + idleft + ": funcion '" + id + "' no fue declarada.");
-            RESULT = "error";
+            RESULT = "error|?";
         } else {
             java.util.ArrayList<String> params = tablaParametros.get((String)id);
             if (params != null && params.size() != argumentosActuales.size()) {
                 errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
-                RESULT = "error";
+                RESULT = "error|?";
             } else if (params != null) {
                 for (int i = 0; i < params.size(); i++) {
-                    if (!params.get(i).equals(argumentosActuales.get(i)) && !argumentosActuales.get(i).equals("error")) {
-                        errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + argumentosActuales.get(i) + "'.");
+                    String tipoArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[0] : argumentosActuales.get(i);
+                    if (!params.get(i).equals(tipoArg) && !tipoArg.equals("error")) {
+                        errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + tipoArg + "'.");
                     }
+                    String lugarArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[1] : argumentosActuales.get(i);
+                    GeneradorCodigo.emitir("    param " + lugarArg);
                 }
-                RESULT = tablaFunciones.get((String)id);
+                String t = GeneradorCodigo.nuevoTemp();
+                GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + params.size());
+                RESULT = tablaFunciones.get((String)id) + "|" + t;
             } else {
-                RESULT = tablaFunciones.get((String)id);
+                RESULT = tablaFunciones.get((String)id) + "|?";
             }
         }
-    :};
+    :} ;
 
 /* Return y Break */
 return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: 

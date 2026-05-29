@@ -1,11 +1,33 @@
+int ~ suma <| int ~ a, int ~ b |> |:
+    return ~ a + b !
+:|
+
+bool ~ esMayor <| int ~ x, int ~ y |> |:
+    return ~ greather_t <| x, y |> !
+:|
+
 empty ~ __main__ ~ <| |> |:
-    int ~ x <- 0 !
-    int ~ suma <- 0 !
+    int ~ resultado <- suma <| 3, 5 |> !
+    cout ~ resultado !
 
+    if <| greather_t <| resultado, 5 |> |> |:
+        cout ~ resultado !
+    :| else |:
+        cout ~ resultado !
+    :|
+
+    int ~ contador <- 0 !
     do |:
-        cin ~ x !
-        suma <- suma + x !
-    :| while <| less_t <| suma, 100 |> |> !
+        contador <- contador + 1 !
+    :| while <| greather_t <| contador, 3 |> |> !
 
-    cout ~ suma !
+    switch ~ <| resultado |> |:
+        case ~ 8 :
+            cout ~ resultado !
+            break !
+        default :
+            cout ~ resultado !
+    :|
+
+    cin ~ resultado !
 :|
