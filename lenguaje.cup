@@ -321,12 +321,14 @@ casoConstante ::= numero | CADENA | BOOLEANO | CARACTER ;
 /* Main */
 programa ::= lista_funciones {: pushScope("GLOBAL (MAIN)"); :} funcion_main {: popScope(); imprimirTodasLasTablas(); :} ;
 
-funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PARENTESIS INICIO_BLOQUE contenido_programa FIN_BLOQUE ;
+funcion_main ::= EMPTY SEPARADOR PALABRA_MAIN SEPARADOR INICIO_PARENTESIS FIN_PARENTESIS {: GeneradorCodigo.emitir("\nmain:"); :} INICIO_BLOQUE contenido_programa FIN_BLOQUE ;
+
 contenido_programa ::= lista_sentencias ;
 
 /* Funciones  */
 funcion ::= INT SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id); :}
+              {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
+                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | FLOAT SEPARADOR IDENTIFICADOR:id
@@ -530,9 +532,12 @@ llamada_funcion_exp ::= IDENTIFICADOR:id
     :};
 
 /* Return y Break */
-return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: validarTipos(tipoFuncionActual, e, "return", eleft); :}
-                   | RETURN error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :};
-
+return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {: 
+                            validarTipos(tipoFuncionActual, e, "return", eleft);
+                            String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
+                            GeneradorCodigo.emitir("    return " + lugarE); :}
+                    | RETURN error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Expresion de retorno invalida, se asume retorno por defecto"); :} ;
+                        
 break_sentencia ::= BREAK DELIMITADOR_EXP {:
         if (nivelBreak == 0) {
             errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": 'break' fuera de un switch o do-while.");

@@ -1,4 +1,7 @@
+int ~ suma <| int ~ a |> |:
+    return]A ~ a !
+:|
+
 empty ~ __main__ ~ <| |> |:
-    int ~ x <- 5 + 3 !
-    int ~ y <- x - 2 !
+    int ~ x <- 5 !
 :|
