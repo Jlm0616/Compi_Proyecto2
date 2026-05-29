@@ -1,7 +1,8 @@
-int ~ suma <| int ~ a |> |:
-    return]A ~ a !
-:|
-
 empty ~ __main__ ~ <| |> |:
     int ~ x <- 5 !
+    if <| greather_t <| x, 3 |> |> |:
+        cout ~ x !
+    :| else |:
+        cout ~ x !
+    :|
 :|

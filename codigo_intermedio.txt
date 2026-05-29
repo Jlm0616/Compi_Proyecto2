@@ -1,8 +1,14 @@
 # ===== CODIGO INTERMEDIO =====
 
-suma:
-
 main:
     t0 = 5
     x = t0
+    t1 = 3
+    t2 = x > t1
+    ifFalse t2 goto L0
+    write x
+    goto L1
+L0:
+    write x
+L1:
 # ===== FIN DEL CODIGO INTERMEDIO =====

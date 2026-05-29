@@ -16,6 +16,10 @@ public class GeneradorCodigo {
         }
     }
 
+    public static void emitirEtiqueta(String etiqueta) {
+        emitir(etiqueta + ":");
+    }
+
     // Cierra el archivo
     public static void cerrar() {
         if (writer != null) {
