@@ -252,6 +252,64 @@ parser code {:
         // Para otros casos (asignacion, return, aritmetica)
         return t1 + "|?";
     }
+
+    // Mapa para guardar el tipo de cada switch
+    private static java.util.HashMap<Integer, String> mapaTipoSwitch = new java.util.HashMap<>();
+    
+    // Mapa para guardar el lugar (temporal) de la expresion de cada switch
+    private static java.util.HashMap<Integer, String> mapaLugarSwitch = new java.util.HashMap<>();
+
+    // Bandera para saber si ya hay default en el switch actual
+    private static java.util.HashMap<Integer, Boolean> mapaDefaultSwitch = new java.util.HashMap<>();
+    
+    private void setTipoSwitch(int switchId, String tipo) {
+        mapaTipoSwitch.put(switchId, tipo);
+    }
+    
+    private String getTipoSwitch(int switchId) {
+        return mapaTipoSwitch.getOrDefault(switchId, "desconocido");
+    }
+    
+    // Mapa para guardar las constantes de case usadas en cada switch
+    private static java.util.HashMap<Integer, java.util.ArrayList<String>> mapaConstantesSwitch = new java.util.HashMap<>();
+    
+    private void agregarConstanteSwitch(int switchId, String constante, int linea) {
+        if (!mapaConstantesSwitch.containsKey(switchId)) {
+            mapaConstantesSwitch.put(switchId, new java.util.ArrayList<>());
+        }
+        java.util.ArrayList<String> constantes = mapaConstantesSwitch.get(switchId);
+        if (constantes.contains(constante)) {
+            errorSemantico("Linea " + linea + ": constante de case duplicada: " + constante);
+        } else {
+            constantes.add(constante);
+        }
+    }
+    
+    private void marcarDefaultUsado(int switchId, int linea) {
+        if (mapaDefaultSwitch.getOrDefault(switchId, false)) {
+            errorSemantico("Linea " + linea + ": solo puede haber un 'default' por switch");
+        } else {
+            mapaDefaultSwitch.put(switchId, true);
+        }
+    }
+
+    private void setLugarSwitch(int id, String lugar) { 
+        mapaLugarSwitch.put(id, lugar); 
+    }
+    private String getLugarSwitch(int id) { 
+        return mapaLugarSwitch.getOrDefault(id, "?"); 
+    }
+
+    // Mapa para guardar la etiqueta de fin de cada case (switch -> caso -> etiqueta)
+    private static java.util.HashMap<Integer, java.util.HashMap<Integer, String>> mapaEtqCasos = new java.util.HashMap<>();
+
+    private void setEtqCasoActual(int swId, int casoId, String etq) {
+        mapaEtqCasos.computeIfAbsent(swId, k -> new java.util.HashMap<>()).put(casoId, etq);
+    }
+    private String getEtqCasoActual(int swId, int casoId) {
+        return mapaEtqCasos.getOrDefault(swId, new java.util.HashMap<>())
+                           .getOrDefault(casoId, "_sw" + swId + "_end");
+    }
 :}
 
 /* Terminales */
@@ -276,7 +334,8 @@ non terminal String lista_valores, valor_lista;
 non terminal String llamada_funcion_exp;
 non terminal asignacion, return_sentencia, break_sentencia;
 non terminal cin_sentencia, cout_sentencia, lista_escritura, elemento_escritura;
-non terminal if_sentencia, do_while_sentencia, switch_sentencia;
+non terminal if_sentencia, do_while_sentencia;
+non terminal String switch_sentencia;
 non terminal lista_casos, lista_caso_simple, caso, caso_default;
 non terminal String expresion, exp_logica, resto_logica;
 non terminal String exp_relacional, exp_aritmetica, resto_aritmetica;
@@ -285,7 +344,8 @@ non terminal String exp_factor, valor;
 non terminal String array;
 non terminal String acceso_arreglo;
 non terminal argumentos, lista_argumentos, bloque_simple, bloque_inicio;
-non terminal casoConstante, while_cabeza;
+non terminal while_cabeza;
+non terminal String casoConstante;
 non terminal String declaracion_resto;
 non terminal String if_cabeza, else_cabeza;
 
@@ -294,30 +354,59 @@ start with programa;
 
 numero ::= NUMERO_ENTERO:n
             {:
+                String nStr = String.valueOf(n);
                 String t = GeneradorCodigo.nuevoTemp();
-                GeneradorCodigo.emitir("    " + t + " = " + n);
-                RESULT = "int|" + t;
+                GeneradorCodigo.emitir("    " + t + " = " + nStr);
+                RESULT = "int|" + t + "|" + nStr;
             :}
          | NUMERO_FLOTANTE:n
             {:
+                String nStr = String.valueOf(n);
                 String t = GeneradorCodigo.nuevoTemp();
-                GeneradorCodigo.emitir("    " + t + " = " + n);
-                RESULT = "float|" + t;
+                GeneradorCodigo.emitir("    " + t + " = " + nStr);
+                RESULT = "float|" + t + "|" + nStr;
             :}
          | NOTACION_CIENTIFICA:n
             {:
+                String nStr = String.valueOf(n);
                 String t = GeneradorCodigo.nuevoTemp();
-                GeneradorCodigo.emitir("    " + t + " = " + n);
-                RESULT = "float|" + t;
+                GeneradorCodigo.emitir("    " + t + " = " + nStr);
+                RESULT = "float|" + t + "|" + nStr;
             :}
          | FRACCIONARIO:n
             {:
+                String nStr = String.valueOf(n);
                 String t = GeneradorCodigo.nuevoTemp();
-                GeneradorCodigo.emitir("    " + t + " = " + n);
-                RESULT = "float|" + t;
+                GeneradorCodigo.emitir("    " + t + " = " + nStr);
+                RESULT = "float|" + t + "|" + nStr;
             :} ;
+
 /* Para case - solo constantes literales (sin variables) */
-casoConstante ::= numero | CADENA | BOOLEANO | CARACTER ;
+casoConstante ::= numero:n 
+                  {: 
+                     String tipo = n.split("\\|")[0];
+                     if (!tipo.equals("int")) {
+                         errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
+                             + ": constante de case debe ser 'int' o 'char', se encontro '" + tipo + "'");
+                         RESULT = "error|?|?";
+                     } else {
+                         RESULT = n;
+                     }
+                  :}
+                | CARACTER:c 
+                {: 
+                    char ch;
+                    if (c instanceof Character) {
+                        ch = (Character) c;
+                    } else {
+                        String cStr = (String) c;
+                        ch = cStr.length() == 1 ? cStr.charAt(0) : cStr.charAt(1);
+                    }
+                    int ascii = (int) ch;
+                    String temp = GeneradorCodigo.nuevoTemp();
+                    GeneradorCodigo.emitir("    " + temp + " = " + ascii);
+                    RESULT = "char|" + temp + "|'" + ch + "'";
+                :};
 
 /* Main */
 programa ::= lista_funciones {: pushScope("GLOBAL (MAIN)"); :} funcion_main {: popScope(); imprimirTodasLasTablas(); :} ;
@@ -541,8 +630,11 @@ return_sentencia ::= RETURN SEPARADOR expresion:e DELIMITADOR_EXP {:
                         
 break_sentencia ::= BREAK DELIMITADOR_EXP {:
         if (nivelBreak == 0) {
-            errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": 'break' fuera de un switch o do-while.");
-        } :} ;
+            errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
+                + ": 'break' fuera de un switch o do-while.");
+        } else {
+            GeneradorCodigo.emitir("    goto _sw" + switchActual + "_end");
+        } :};
 
 /* cin y cout */
 cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP {: 
@@ -617,8 +709,33 @@ do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expres
             errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + tipoE + "'.");
         } :} ;
 
-switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion FIN_PARENTESIS {: contadorSwitch++; switchActual = contadorSwitch; casoActual = 0; nivelBreak++; pushScope("SWITCH " + switchActual); :} INICIO_BLOQUE lista_casos FIN_BLOQUE {: nivelBreak--; popScope(); :}
-                   | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); :};
+switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion:e FIN_PARENTESIS 
+                     {: 
+                        contadorSwitch++; 
+                        switchActual = contadorSwitch; 
+                        casoActual = 0; 
+                        nivelBreak++; 
+                        pushScope("SWITCH " + switchActual);
+                        String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
+                        if (!tipoE.equals("int") && !tipoE.equals("char") && !tipoE.equals("error")) {
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left 
+                                + ": la expresion del switch debe ser 'int' o 'char', se encontro '" + tipoE + "'.");
+                        }
+                        setTipoSwitch(switchActual, tipoE);
+                        String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
+                        GeneradorCodigo.emitir("_switch" + switchActual + ":");
+                        setLugarSwitch(switchActual, lugarE);
+                        String tsw = "tsw" + switchActual;
+                        GeneradorCodigo.emitir("    " + tsw + " = 1");
+                     :} 
+                     INICIO_BLOQUE lista_casos FIN_BLOQUE 
+                     {: 
+                        GeneradorCodigo.emitirEtiqueta("_sw" + switchActual + "_end");
+                        nivelBreak--; 
+                        popScope(); 
+                     :}
+                   | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE 
+                     {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Switch invalido, se omite"); :};
 
 /* Casos del switch incluyendo opcional default */
 lista_casos ::= lista_caso_simple caso_default
@@ -626,14 +743,67 @@ lista_casos ::= lista_caso_simple caso_default
                 | caso_default;
 
 /* Lista de uno o mas cases */
-lista_caso_simple ::= caso lista_caso_simple | caso ;
+lista_caso_simple ::= caso lista_caso_simple | caso;
 
 /* Etiqueta case con su bloque de sentencias. punto s: ~ entre case/default y expresion/identificador */
-caso ::= CASE SEPARADOR casoConstante DOS_PUNTOS {: casoActual++; :} lista_sentencias 
-       | CASE error DOS_PUNTOS lista_sentencias  {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); :};
+caso ::= CASE SEPARADOR casoConstante:c DOS_PUNTOS 
+         {: 
+            casoActual++;
+            String tipoSwitchActual = getTipoSwitch(switchActual);
+            String[] partes = (c != null) ? c.split("\\|") : new String[]{"error","?","?"};
+            String tipoConstante  = partes.length > 0 ? partes[0] : "error";
+            String lugarConstante = partes.length > 1 ? partes[1] : "?";
+            String valorConstante = partes.length > 2 ? partes[2] 
+                                  : partes.length > 1 ? partes[1] 
+                                  : "?";
+
+            if (!tipoSwitchActual.equals("desconocido") && !tipoConstante.equals("error")) {
+                if (tipoSwitchActual.equals("int") && !tipoConstante.equals("int")) {
+                    errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
+                        + ": constante de case tipo '" + tipoConstante 
+                        + "' incompatible con expresion del switch (tipo 'int')");
+                } else if (tipoSwitchActual.equals("char") && !tipoConstante.equals("char")) {
+                    errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
+                        + ": constante de case tipo '" + tipoConstante 
+                        + "' incompatible con expresion del switch (tipo 'char')");
+                }
+            }
+            agregarConstanteSwitch(switchActual, valorConstante,
+                                   ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left);
+
+            // Codigo intermedio
+            String lugarSw = getLugarSwitch(switchActual);
+            String tsw     = "tsw" + switchActual;
+            String etqBody = "_case" + switchActual + "_" + casoActual + "_b";
+            String etqEnd  = "_case" + switchActual + "_" + casoActual + "_e";
+            setEtqCasoActual(switchActual, casoActual, etqEnd);
+
+            GeneradorCodigo.emitirEtiqueta("_case" + switchActual + "_" + casoActual);
+            String tFall = GeneradorCodigo.nuevoTemp();
+            GeneradorCodigo.emitir("    " + tFall + " = " + tsw + " == 0");
+            GeneradorCodigo.emitir("    if " + tFall + " goto " + etqBody);
+            String tCmp = GeneradorCodigo.nuevoTemp();
+            GeneradorCodigo.emitir("    " + tCmp + " = " + lugarSw + " == " + lugarConstante);
+            GeneradorCodigo.emitir("    if " + tCmp + " goto " + etqBody);
+            GeneradorCodigo.emitir("    goto " + etqEnd);
+            GeneradorCodigo.emitirEtiqueta(etqBody);
+            GeneradorCodigo.emitir("    " + tsw + " = 0");
+         :} 
+         lista_sentencias
+         {: 
+            String etqEnd = getEtqCasoActual(switchActual, casoActual);
+            GeneradorCodigo.emitirEtiqueta(etqEnd);
+         :}
+       | CASE error DOS_PUNTOS lista_sentencias  
+         {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Case invalido, se omite"); :};
 
 /* Etiqueta default (opcional) */
-caso_default ::= DEFAULT DOS_PUNTOS lista_sentencias;
+caso_default ::= DEFAULT DOS_PUNTOS 
+                 {: 
+                    marcarDefaultUsado(switchActual, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left);
+                    GeneradorCodigo.emitirEtiqueta("_default" + switchActual);
+                 :} 
+                 lista_sentencias;
 
 expresion ::= exp_logica:e{: RESULT = e; :};
 

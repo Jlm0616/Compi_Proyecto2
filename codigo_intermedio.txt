@@ -11,4 +11,45 @@ main:
 L0:
     write x
 L1:
+    t3 = 'A'
+    _x_ = t3
+_switch1:
+    tsw1 = 1
+    t4 = 83
+_case1_1:
+    t5 = tsw1 == 0
+    if t5 goto _case1_1_b
+    t6 = _x_ == t4
+    if t6 goto _case1_1_b
+    goto _case1_1_e
+_case1_1_b:
+    tsw1 = 0
+    write "es uno"
+_case1_1_e:
+    t7 = 65
+_case1_2:
+    t8 = tsw1 == 0
+    if t8 goto _case1_2_b
+    t9 = _x_ == t7
+    if t9 goto _case1_2_b
+    goto _case1_2_e
+_case1_2_b:
+    tsw1 = 0
+    write "es dos"
+    goto _sw1_end
+_case1_2_e:
+    t10 = 53
+_case1_3:
+    t11 = tsw1 == 0
+    if t11 goto _case1_3_b
+    t12 = _x_ == t10
+    if t12 goto _case1_3_b
+    goto _case1_3_e
+_case1_3_b:
+    tsw1 = 0
+    write "es tres"
+_case1_3_e:
+_default1:
+    write "no es 1,2 ni 3"
+_sw1_end:
 # ===== FIN DEL CODIGO INTERMEDIO =====
