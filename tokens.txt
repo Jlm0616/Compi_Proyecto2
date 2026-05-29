@@ -55,7 +55,7 @@ CARACTER                  S                    12
 DOS_PUNTOS                :                    12
 COUT                      cout                 13
 SEPARADOR                 ~                    13
-CADENA                    es uno               13
+CADENA                    es S                 13
 DELIMITADOR_EXP           !                    13
 CASE                      case                 14
 SEPARADOR                 ~                    14
@@ -63,7 +63,7 @@ CARACTER                  A                    14
 DOS_PUNTOS                :                    14
 COUT                      cout                 15
 SEPARADOR                 ~                    15
-CADENA                    es dos               15
+CADENA                    es A                 15
 DELIMITADOR_EXP           !                    15
 BREAK                     break                16
 DELIMITADOR_EXP           !                    16
@@ -73,13 +73,13 @@ CARACTER                  5                    17
 DOS_PUNTOS                :                    17
 COUT                      cout                 18
 SEPARADOR                 ~                    18
-CADENA                    es tres              18
+CADENA                    es cinco             18
 DELIMITADOR_EXP           !                    18
 DEFAULT                   default              19
 DOS_PUNTOS                :                    19
 COUT                      cout                 20
 SEPARADOR                 ~                    20
-CADENA                    no es 1,2 ni 3       20
+CADENA                    otro                 20
 DELIMITADOR_EXP           !                    20
 FIN_BLOQUE                :|                   21
 FIN_BLOQUE                :|                   22

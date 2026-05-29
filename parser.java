@@ -2389,7 +2389,10 @@ class CUP$parser$actions {
         String tipoT = t.contains("|") ? t.split("\\|")[0] : t;
         if (!tipoT.equals("int") && !tipoT.equals("float") && !tipoT.equals("error")) {
             errorSemantico("Linea " + idleft + ": cin solo puede leer variables int o float, se encontro tipo '" + tipoT + "'.");
-        } 
+        } else {
+            GeneradorCodigo.emitir("    read " + id);
+        }
+    
               CUP$parser$result = parser.getSymbolFactory().newSymbol("cin_sentencia",20, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-3)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2437,7 +2440,11 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 GeneradorCodigo.emitir("    write " + id); 
+		 
+                            String t = verificarUso((String)id, idleft);
+                            String lugar = t.contains("|") ? t.split("\\|")[1] : (String)id;
+                            GeneradorCodigo.emitir("    write " + lugar); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2449,8 +2456,10 @@ class CUP$parser$actions {
 		int nleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int nright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String n = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 String lugar = n.contains("|") ? n.split("\\|")[1] : n;
-                           GeneradorCodigo.emitir("    write -" + lugar); 
+		 
+                            String lugar = n.contains("|") ? n.split("\\|")[1] : n;
+                            GeneradorCodigo.emitir("    write -" + lugar); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2462,8 +2471,10 @@ class CUP$parser$actions {
 		int nleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int nright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String n = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 String lugar = n.contains("|") ? n.split("\\|")[1] : n;
-                           GeneradorCodigo.emitir("    write " + lugar); 
+		 
+                            String lugar = n.contains("|") ? n.split("\\|")[1] : n;
+                            GeneradorCodigo.emitir("    write " + lugar); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2475,7 +2486,11 @@ class CUP$parser$actions {
 		int sleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int sright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object s = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 GeneradorCodigo.emitir("    write \"" + s + "\""); 
+		 
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = \"" + s + "\"");
+                            GeneradorCodigo.emitir("    write " + t); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2487,7 +2502,11 @@ class CUP$parser$actions {
 		int bleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int bright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object b = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 GeneradorCodigo.emitir("    write " + b); 
+		 
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + b);
+                            GeneradorCodigo.emitir("    write " + t); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2499,7 +2518,18 @@ class CUP$parser$actions {
 		int cleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int cright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object c = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 GeneradorCodigo.emitir("    write " + c); 
+		 
+                            char ch;
+                            if (c instanceof Character) {
+                                ch = (Character) c;
+                            } else {
+                                String cStr = (String) c;
+                                ch = cStr.length() == 1 ? cStr.charAt(0) : cStr.charAt(1);
+                            }
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + (int)ch);
+                            GeneradorCodigo.emitir("    write " + t); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2511,7 +2541,10 @@ class CUP$parser$actions {
 		int arrleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int arrright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String arr = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 GeneradorCodigo.emitir("    write " + arr); 
+		 
+                            String lugar = arr.contains("|") ? arr.split("\\|")[1] : arr;
+                            GeneradorCodigo.emitir("    write " + lugar); 
+                        
               CUP$parser$result = parser.getSymbolFactory().newSymbol("elemento_escritura",23, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -3460,8 +3493,15 @@ class CUP$parser$actions {
 		int cright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object c = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
 		
+                char ch;
+                if (c instanceof Character) {
+                    ch = (Character) c;
+                } else {
+                    String cStr = (String) c;
+                    ch = cStr.length() == 1 ? cStr.charAt(0) : cStr.charAt(1);
+                }
                 String t = GeneradorCodigo.nuevoTemp();
-                GeneradorCodigo.emitir("    " + t + " = '" + c + "'");
+                GeneradorCodigo.emitir("    " + t + " = " + (int)ch);
                 RESULT = "char|" + t; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("valor",42, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }

@@ -11,7 +11,7 @@ main:
 L0:
     write x
 L1:
-    t3 = 'A'
+    t3 = 65
     _x_ = t3
 _switch1:
     tsw1 = 1
@@ -24,32 +24,36 @@ _case1_1:
     goto _case1_1_e
 _case1_1_b:
     tsw1 = 0
-    write "es uno"
+    t7 = "es S"
+    write t7
 _case1_1_e:
-    t7 = 65
+    t8 = 65
 _case1_2:
-    t8 = tsw1 == 0
-    if t8 goto _case1_2_b
-    t9 = _x_ == t7
+    t9 = tsw1 == 0
     if t9 goto _case1_2_b
+    t10 = _x_ == t8
+    if t10 goto _case1_2_b
     goto _case1_2_e
 _case1_2_b:
     tsw1 = 0
-    write "es dos"
+    t11 = "es A"
+    write t11
     goto _sw1_end
 _case1_2_e:
-    t10 = 53
+    t12 = 53
 _case1_3:
-    t11 = tsw1 == 0
-    if t11 goto _case1_3_b
-    t12 = _x_ == t10
-    if t12 goto _case1_3_b
+    t13 = tsw1 == 0
+    if t13 goto _case1_3_b
+    t14 = _x_ == t12
+    if t14 goto _case1_3_b
     goto _case1_3_e
 _case1_3_b:
     tsw1 = 0
-    write "es tres"
+    t15 = "es cinco"
+    write t15
 _case1_3_e:
 _default1:
-    write "no es 1,2 ni 3"
+    t16 = "otro"
+    write t16
 _sw1_end:
 # ===== FIN DEL CODIGO INTERMEDIO =====

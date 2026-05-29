@@ -642,7 +642,10 @@ cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP {:
         String tipoT = t.contains("|") ? t.split("\\|")[0] : t;
         if (!tipoT.equals("int") && !tipoT.equals("float") && !tipoT.equals("error")) {
             errorSemantico("Linea " + idleft + ": cin solo puede leer variables int o float, se encontro tipo '" + tipoT + "'.");
-        } :};
+        } else {
+            GeneradorCodigo.emitir("    read " + id);
+        }
+    :};
 
 cout_sentencia ::= COUT SEPARADOR lista_escritura DELIMITADOR_EXP
                  | COUT error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); :};
@@ -651,17 +654,51 @@ lista_escritura ::= elemento_escritura
                     | elemento_escritura SEPARADOR lista_escritura;
 
 elemento_escritura ::= IDENTIFICADOR:id 
-                        {: GeneradorCodigo.emitir("    write " + id); :}
+                        {: 
+                            String t = verificarUso((String)id, idleft);
+                            String lugar = t.contains("|") ? t.split("\\|")[1] : (String)id;
+                            GeneradorCodigo.emitir("    write " + lugar); 
+                        :}
                      | MENOS numero:n
-                        {: String lugar = n.contains("|") ? n.split("\\|")[1] : n;
-                           GeneradorCodigo.emitir("    write -" + lugar); :}
+                        {: 
+                            String lugar = n.contains("|") ? n.split("\\|")[1] : n;
+                            GeneradorCodigo.emitir("    write -" + lugar); 
+                        :}
                      | numero:n
-                        {: String lugar = n.contains("|") ? n.split("\\|")[1] : n;
-                           GeneradorCodigo.emitir("    write " + lugar); :}
-                     | CADENA:s    {: GeneradorCodigo.emitir("    write \"" + s + "\""); :}
-                     | BOOLEANO:b  {: GeneradorCodigo.emitir("    write " + b); :}
-                     | CARACTER:c  {: GeneradorCodigo.emitir("    write " + c); :}
-                     | acceso_arreglo:arr {: GeneradorCodigo.emitir("    write " + arr); :} ;
+                        {: 
+                            String lugar = n.contains("|") ? n.split("\\|")[1] : n;
+                            GeneradorCodigo.emitir("    write " + lugar); 
+                        :}
+                     | CADENA:s    
+                        {: 
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = \"" + s + "\"");
+                            GeneradorCodigo.emitir("    write " + t); 
+                        :}
+                     | BOOLEANO:b  
+                        {: 
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + b);
+                            GeneradorCodigo.emitir("    write " + t); 
+                        :}
+                     | CARACTER:c  
+                        {: 
+                            char ch;
+                            if (c instanceof Character) {
+                                ch = (Character) c;
+                            } else {
+                                String cStr = (String) c;
+                                ch = cStr.length() == 1 ? cStr.charAt(0) : cStr.charAt(1);
+                            }
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + (int)ch);
+                            GeneradorCodigo.emitir("    write " + t); 
+                        :}
+                     | acceso_arreglo:arr 
+                        {: 
+                            String lugar = arr.contains("|") ? arr.split("\\|")[1] : arr;
+                            GeneradorCodigo.emitir("    write " + lugar); 
+                        :};
 
 /* Bloques */
 bloque_inicio ::= INICIO_BLOQUE {: pushScope(nombreBloqueActual); nombreBloqueActual = "BLOQUE"; :} ;
@@ -1001,8 +1038,15 @@ valor ::= numero:n {: RESULT = n; :}
                 GeneradorCodigo.emitir("    " + t + " = \"" + s + "\"");
                 RESULT = "string|" + t; :}
         | CARACTER:c {:
+                char ch;
+                if (c instanceof Character) {
+                    ch = (Character) c;
+                } else {
+                    String cStr = (String) c;
+                    ch = cStr.length() == 1 ? cStr.charAt(0) : cStr.charAt(1);
+                }
                 String t = GeneradorCodigo.nuevoTemp();
-                GeneradorCodigo.emitir("    " + t + " = '" + c + "'");
+                GeneradorCodigo.emitir("    " + t + " = " + (int)ch);
                 RESULT = "char|" + t; :}
         | acceso_arreglo:arr {: RESULT = arr; :}
         | llamada_funcion_exp:lf {: RESULT = lf; :}

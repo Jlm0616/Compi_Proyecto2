@@ -7,16 +7,16 @@ empty ~ __main__ ~ <| |> |:
     :|
 
     char ~ _x_ <- 'A'!
-    switch ~ <|  _x_ |> 
+    switch ~ <| _x_ |> 
     |: 
         case ~ 'S': 
-            cout ~ "es uno" !
+            cout ~ "es S" !
         case ~ 'A': 
-            cout ~ "es dos" !
+            cout ~ "es A" !
             break!
-        case~ '5': 
-            cout ~ "es tres" !
+        case ~ '5': 
+            cout ~ "es cinco" !
         default: 
-            cout ~ "no es 1,2 ni 3" !
+            cout ~ "otro" !
     :|
 :|
