@@ -1,40 +1,46 @@
-/**
- * Analizador Lexico para el Lenguaje de Configuracion de Chips
- * COMPILADORES E INTERPRETES - Proyecto 1
- */
+// ===============================================================
+// ANALIZADOR LEXICO
+// ===============================================================
+// Lenguaje de Configuracion de Chips
+// COMPILADORES E INTERPRETES - Proyecto 1
+// ===============================================================
 
 import java_cup.runtime.Symbol;
 
 %%
-%cup
-%unicode
-%class Lexer
-%line
-%column
+%cup                    // Usar CUP para compatibilidad con parser
+%unicode                // Soporte para caracteres Unicode
+%class Lexer            // Nombre de la clase generada
+%line                   // Habilitar contador de lineas (yyline)
+%column                 // Habilitar contador de columnas (yycolumn)
 
 %{
 
-    // Código de colores ANSI
+    // ===============================================================
+    // CODIGO JAVA EMBEBIDO
+    // ===============================================================
+    
+    // Colores para mensajes de error
     private static final String ANSI_RESET = "\u001B[0m";
     private static final String ANSI_GREEN = "\u001B[32m";
 
-    /* Contador de errores lexicos */
+    // Contador de errores lexicos (publico para Main)
     public static int erroresLexicos = 0;
     
-    /* Flag para silenciar errores (primer pase) */
+    // Silenciar errores en el primer pase (para generar tokens.txt)
     public static boolean silenciarErrores = false;
     
-    /* Metodo para crear un token sin valor */
+    // Crea un token sin valor asociado
     private Symbol symbol(int type) {
         return new Symbol(type, yyline + 1, yycolumn + 1);
     }
     
-    /* Metodo para crear un token con valor */
+    // Crea un token con valor asociado
     private Symbol symbol(int type, Object value) {
         return new Symbol(type, yyline + 1, yycolumn + 1, value);
     }
     
-    /* Metodo para reportar error lexico */
+    // Reporta un error lexico (con color)
     private void errorLexico(String mensaje) {
         erroresLexicos++;
         if (!silenciarErrores) {
@@ -42,6 +48,10 @@ import java_cup.runtime.Symbol;
         }
     }
 %}
+
+// ===============================================================
+// DEFINICIONES DE EXPRESIONES REGULARES
+// ===============================================================
 
 /* ========== COMENTARIOS ========== */
 ComentarioLinea = "¡¡".*
@@ -117,6 +127,10 @@ OpLogicoBinario = "@"|"#"
 OpLogicoUnario = "$"
 
 %%
+
+// ===============================================================
+// REGLAS LEXICAS (PATRON - ACCION)
+// ===============================================================
 
 /* ========== PALABRAS RESERVADAS ========== */
 {PalabraMain}    { return symbol(sym.PALABRA_MAIN, yytext()); }
