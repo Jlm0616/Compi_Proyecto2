@@ -12,7 +12,7 @@ float~_mi_  <| int~_dif_, char~_otra_|>   |:
 		int ~ _var2_ !
 			cin ~ _var2_ !
 			break!
-	:| while <|true|> !
+	:| while <|<|true @ greather_te <|5, <| 5+3 |> |> |>|> !
 
 		if  <| true |> 
 		 |: 
@@ -36,7 +36,7 @@ float~_mi_  <| int~_dif_, char~_otra_|>   |:
 			 :| 
 			switch ~ <| _otra_ |>  ¡¡semantico
 			 |: 
-				case~10: 
+				case~ '4': 
 					cout ~ "un case" !
 			 :| 
 		 :| 

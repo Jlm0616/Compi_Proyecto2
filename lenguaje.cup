@@ -264,6 +264,9 @@ parser code {:
     
     private static java.util.HashMap<Integer, String> mapaEtqInicioWhile = new java.util.HashMap<>();
 
+    static java.util.Stack<String> pilaBreak = new java.util.Stack<>();
+    static java.util.Stack<Integer> pilaContadorWhile = new java.util.Stack<>();
+
     private void setTipoSwitch(int switchId, String tipo) {
         mapaTipoSwitch.put(switchId, tipo);
     }
@@ -654,7 +657,7 @@ break_sentencia ::= BREAK DELIMITADOR_EXP {:
             errorSemantico("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left 
                 + ": 'break' fuera de un switch o do-while.");
         } else {
-            GeneradorCodigo.emitir("    goto _sw" + switchActual + "_end");
+            GeneradorCodigo.emitir("    goto " + pilaBreak.peek());
         } :};
 
 /* cin y cout */
@@ -740,7 +743,7 @@ if_cabeza ::= IF INICIO_PARENTESIS expresion:e FIN_PARENTESIS
     :} ;
 
 else_cabeza  ::= ELSE {: contadorElse++;  nombreBloqueActual = "ELSE "  + contadorElse; :} ;
-while_cabeza ::= DO   {: contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; String etqInicio = "_dowhile" + contadorWhile + "_start"; GeneradorCodigo.emitirEtiqueta(etqInicio); setEtqInicioWhile(contadorWhile, etqInicio); :} ;
+while_cabeza ::= DO {: contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; String etqInicio = "_dowhile" + contadorWhile + "_start"; GeneradorCodigo.emitirEtiqueta(etqInicio); setEtqInicioWhile(contadorWhile, etqInicio); pilaBreak.push("_dowhile" + contadorWhile + "_end"); pilaContadorWhile.push(contadorWhile); :};
 
 if_sentencia ::= if_cabeza:cab bloque_simple
     {:
@@ -763,16 +766,18 @@ if_sentencia ::= if_cabeza:cab bloque_simple
 do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP
     {:
         nivelBreak--;
+        pilaBreak.pop();
+        int miWhile = pilaContadorWhile.pop();
         String tipoE = e.contains("|") ? e.split("\\|")[0] : e;
         if (!tipoE.equals("bool") && !tipoE.equals("error")) {
             errorSemantico("Linea " + eleft + ": la condicion del do-while debe ser de tipo bool, se encontro '" + tipoE + "'.");
         }
         String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
-        String etqInicio = getEtqInicioWhile(contadorWhile);
-        String etqFin    = "_dowhile" + contadorWhile + "_end";
+        String etqInicio = getEtqInicioWhile(miWhile);
+        String etqFin    = "_dowhile" + miWhile + "_end";
         GeneradorCodigo.emitir("    if " + lugarE + " goto " + etqInicio);
         GeneradorCodigo.emitirEtiqueta(etqFin);
-    :} ;
+    :};
 
 switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion:e FIN_PARENTESIS 
                      {: 
@@ -792,11 +797,13 @@ switch_sentencia ::= SWITCH SEPARADOR INICIO_PARENTESIS expresion:e FIN_PARENTES
                         setLugarSwitch(switchActual, lugarE);
                         String tsw = "tsw" + switchActual;
                         GeneradorCodigo.emitir("    " + tsw + " = 1");
+                        pilaBreak.push("_sw" + switchActual + "_end");
                      :} 
                      INICIO_BLOQUE lista_casos FIN_BLOQUE 
                      {: 
                         GeneradorCodigo.emitirEtiqueta("_sw" + switchActual + "_end");
-                        nivelBreak--; 
+                        nivelBreak--;
+                        pilaBreak.pop();
                         popScope(); 
                      :}
                    | SWITCH error INICIO_BLOQUE lista_casos FIN_BLOQUE 
@@ -875,13 +882,17 @@ expresion ::= exp_logica:e{: RESULT = e; :};
 exp_logica ::= exp_relacional:e1 resto_logica:r
                 {: 
                     String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                    String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
                     String tipoR = r != null ? (r.contains("|") ? r.split("\\|")[0] : r) : null;
+                    String lugarR = r != null ? (r.contains("|") ? r.split("\\|")[1] : r) : null;
                     if (tipoR != null && !tipoR.equals("error")) {
                         if (!tipo1.equals("bool") || !tipoR.equals("bool")) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
                             RESULT = "error|?";
                         } else {
-                            RESULT = "bool|?";
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " @ " + lugarR);
+                            RESULT = "bool|" + t;
                         }
                     } else {
                         RESULT = e1;
@@ -894,29 +905,34 @@ resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESU
 
 exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
                     {: 
-                        // LIMPIAR TIPOS
                         String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
-                        
+                        String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
+                        String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
                         if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
                             (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
-                            RESULT = "error";
+                            RESULT = "error|?";
                         } else {
-                            RESULT = validarTipos(tipo1, tipo2, "less_t", ((Symbol)CUP$parser$stack.peek()).left);
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " < " + lugar2);
+                            RESULT = "bool|" + t;
                         }
                     :}
                  | LESS_TE INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
                     {: 
                         String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
-                        
+                        String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
+                        String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
                         if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
                             (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
-                            RESULT = "error";
+                            RESULT = "error|?";
                         } else {
-                            RESULT = validarTipos(tipo1, tipo2, "less_te", ((Symbol)CUP$parser$stack.peek()).left);
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " <= " + lugar2);
+                            RESULT = "bool|" + t;
                         }
                     :}
                  | GREATER_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetica:e2 FIN_PARENTESIS
@@ -925,11 +941,10 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                         String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
                         String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
                         String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
-                        
                         if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
                             (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
-                            RESULT = "error";
+                            RESULT = "error|?";
                         } else {
                             String t = GeneradorCodigo.nuevoTemp();
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " > " + lugar2);
@@ -940,26 +955,47 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                     {: 
                         String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
-                        
+                        String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
+                        String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
                         if ((!tipo1.equals("int") && !tipo1.equals("float") && !tipo1.equals("error")) ||
                             (!tipo2.equals("int") && !tipo2.equals("float") && !tipo2.equals("error"))) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
-                            RESULT = "error";
+                            RESULT = "error|?";
                         } else {
-                            RESULT = validarTipos(tipo1, tipo2, "greather_te", ((Symbol)CUP$parser$stack.peek()).left);
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " >= " + lugar2);
+                            RESULT = "bool|" + t;
                         }
                     :}
                  | EQUAL INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS
                     {: 
                         String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
-                        RESULT = validarTipos(tipo1, tipo2, "equal", ((Symbol)CUP$parser$stack.peek()).left); 
+                        String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
+                        String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
+                        String resV = validarTipos(tipo1, tipo2, "equal", ((Symbol)CUP$parser$stack.peek()).left);
+                        if (!resV.contains("error")) {
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " == " + lugar2);
+                            RESULT = "bool|" + t;
+                        } else {
+                            RESULT = "error|?";
+                        }
                     :}
                  | N_EQUAL INICIO_PARENTESIS expresion:e1 COMA expresion:e2 FIN_PARENTESIS
                     {: 
                         String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String tipo2 = e2.contains("|") ? e2.split("\\|")[0] : e2;
-                        RESULT = validarTipos(tipo1, tipo2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left); 
+                        String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
+                        String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
+                        String resV = validarTipos(tipo1, tipo2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left);
+                        if (!resV.contains("error")) {
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " != " + lugar2);
+                            RESULT = "bool|" + t;
+                        } else {
+                            RESULT = "error|?";
+                        }
                     :}
                  | exp_aritmetica:e {: RESULT = e; :};
 
@@ -995,10 +1031,14 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                     String tipo = e1.contains("|") ? e1.split("\\|")[0] : e1;
                     String lugar = e1.contains("|") ? e1.split("\\|")[1] : e1;
                     if (r != null && !r.equals("error")) {
-                        String tipoR = r.contains("|") ? r.split("\\|")[0] : r;
-                        String opR   = r.contains("|") ? r.split("\\|")[1] : "*";
+                        String opR   = r.split("\\|")[0];
+                        String tipoR = r.split("\\|")[1];
+                        String lugarR = r.split("\\|")[2];
                         if (opR.equals("%") && !tipo.equals("int") && !tipo.equals("error")) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipo + "'.");
+                            RESULT = "error|?";
+                        } else if (opR.equals("%") && !tipoR.equals("int") && !tipoR.equals("error")) {
+                            errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipoR + "'.");
                             RESULT = "error|?";
                         } else {
                             String nombreOp = opR.equals("*") ? "multiplicacion" 
@@ -1006,7 +1046,7 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                                            : "modulo";
                             validarTipos(tipo, tipoR, nombreOp, ((Symbol)CUP$parser$stack.peek()).left);
                             String t = GeneradorCodigo.nuevoTemp();
-                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + tipoR);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
                             RESULT = tipo + "|" + t;
                         }
                     } else {
@@ -1015,9 +1055,9 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                 :};
 
 /* Operadores de multiplicacion, division y modulo en cadena */
-resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = e + "|*"; :}
-                | DIVISION exp_factor:e resto_termino:r       {: RESULT = e + "|/"; :}
-                | MODULO exp_factor:e resto_termino:r         {: RESULT = e + "|%"; :}
+resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = "*|" + e; :}
+                | DIVISION exp_factor:e resto_termino:r       {: RESULT = "/|" + e; :}
+                | MODULO exp_factor:e resto_termino:r         {: RESULT = "%|" + e; :}
                 | /* vacio */ {: RESULT = null; :};
 
 
