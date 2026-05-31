@@ -569,28 +569,28 @@ start with programa;
 numero ::= NUMERO_ENTERO:n
             {:
                 String nStr = String.valueOf(n);
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("int"); 
                 GeneradorCodigo.emitir("    " + t + " = " + nStr);
                 RESULT = "int|" + t + "|" + nStr;
             :}
          | NUMERO_FLOTANTE:n
             {:
                 String nStr = String.valueOf(n);
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("float"); 
                 GeneradorCodigo.emitir("    " + t + " = " + nStr);
                 RESULT = "float|" + t + "|" + nStr;
             :}
          | NOTACION_CIENTIFICA:n
             {:
                 String nStr = String.valueOf(n);
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("float"); 
                 GeneradorCodigo.emitir("    " + t + " = " + nStr);
                 RESULT = "float|" + t + "|" + nStr;
             :}
          | FRACCIONARIO:n
             {:
                 String nStr = String.valueOf(n);
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("float");  // 
                 GeneradorCodigo.emitir("    " + t + " = " + nStr);
                 RESULT = "float|" + t + "|" + nStr;
             :};
@@ -812,7 +812,6 @@ declaracion_resto ::= declaracion_variable_resto
 
 declaracion_variable_resto ::= DELIMITADOR_EXP
     | ASIGNACION expresion:e DELIMITADOR_EXP {: 
-          System.err.println("DEBUG e='" + e + "'");
           String tipoExp = e.contains("|") ? e.split("\\|")[0] : e;
           validarTipos(tipoDeclaracionActual, tipoExp, "asignacion", eleft);
           String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
@@ -1215,7 +1214,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_t' solo aplica a int o float.");
                             RESULT = "error|?";
                         } else {
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp("int");  
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " < " + lugar2);
                             RESULT = "bool|" + t;
                         }
@@ -1231,7 +1230,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
                             RESULT = "error|?";
                         } else {
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp("int");  
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " <= " + lugar2);
                             RESULT = "bool|" + t;
                         }
@@ -1247,7 +1246,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_t' solo aplica a int o float.");
                             RESULT = "error|?";
                         } else {
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp("int");  
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " > " + lugar2);
                             RESULT = "bool|" + t;
                         }
@@ -1263,7 +1262,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
                             RESULT = "error|?";
                         } else {
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp("int"); 
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " >= " + lugar2);
                             RESULT = "bool|" + t;
                         }
@@ -1276,7 +1275,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                         String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
                         String resV = validarTipos(tipo1, tipo2, "equal", ((Symbol)CUP$parser$stack.peek()).left);
                         if (!resV.contains("error")) {
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp("int");  
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " == " + lugar2);
                             RESULT = "bool|" + t;
                         } else {
@@ -1291,7 +1290,7 @@ exp_relacional ::= LESS_T INICIO_PARENTESIS exp_aritmetica:e1 COMA exp_aritmetic
                         String lugar2 = e2.contains("|") ? e2.split("\\|")[1] : e2;
                         String resV = validarTipos(tipo1, tipo2, "n_equal", ((Symbol)CUP$parser$stack.peek()).left);
                         if (!resV.contains("error")) {
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp("int");  
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " != " + lugar2);
                             RESULT = "bool|" + t;
                         } else {
@@ -1308,16 +1307,18 @@ exp_aritmetica ::= exp_termino:e1 resto_aritmetica:r {:
                         String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
                         if (r != null && !r.equals("error|?")) {
-                            String op    = r.split("\\|")[0];
+                            String op = r.split("\\|")[0];
                             String lugar2 = r.split("\\|")[1];
-                            String tipo2  = r.split("\\|")[2];
+                            String tipo2 = r.split("\\|")[2];
                             validarTipos(tipo1, tipo2, "aritmetica", ((Symbol)CUP$parser$stack.peek()).left);
-                            String t = GeneradorCodigo.nuevoTemp();
+                            
+                            String t = GeneradorCodigo.nuevoTemp(tipo1); 
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " " + op + " " + lugar2);
                             RESULT = tipo1 + "|" + t;
                         } else {
                             RESULT = e1;
-                        } :};
+                        }
+                    :};
 
 
 /* Operadores de suma y resta en cadena */
@@ -1416,11 +1417,11 @@ exp_factor ::= MENOS numero:n {: RESULT = n; :}
 valor ::= numero:n {: RESULT = n; :}
         | IDENTIFICADOR:id {: RESULT = verificarUso((String)id, idleft); :}
         | BOOLEANO:b {:
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("int");  
                 GeneradorCodigo.emitir("    " + t + " = " + b);
                 RESULT = "bool|" + t; :}
         | CADENA:s {:
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("int"); 
                 GeneradorCodigo.emitir("    " + t + " = \"" + s + "\"");
                 RESULT = "string|" + t; :}
         | CARACTER:c {:
@@ -1431,7 +1432,7 @@ valor ::= numero:n {: RESULT = n; :}
                     String cStr = (String) c;
                     ch = cStr.length() == 1 ? cStr.charAt(0) : cStr.charAt(1);
                 }
-                String t = GeneradorCodigo.nuevoTemp();
+                String t = GeneradorCodigo.nuevoTemp("int");  
                 GeneradorCodigo.emitir("    " + t + " = " + (int)ch);
                 RESULT = "char|" + t; :}
         | acceso_arreglo:arr {: RESULT = arr; :}

@@ -13,9 +13,10 @@ public class GeneradorCodigo {
     // ATRIBUTOS ESTATICOS
     // ===============================================================
     
-    private static int contadorTemp = 0;    // Contador para temporales: t0, t1, t2...
-    private static int contadorEtiq = 0;    // Contador para etiquetas: L0, L1, L2...
-    private static PrintWriter writer = null;  // Archivo de salida
+    private static int contadorTempInt = 0;      // Contador para enteros: t0, t1, t2...
+    private static int contadorTempFloat = 0;    // Contador para flotantes: f0, f1, f2...
+    private static int contadorEtiq = 0;         // Contador para etiquetas: L0, L1, L2...
+    private static PrintWriter writer = null;    // Archivo de salida
 
     // ===============================================================
     // INICIAR
@@ -56,13 +57,30 @@ public class GeneradorCodigo {
     }
 
     // ===============================================================
-    // NUEVO TEMPORAL
+    // NUEVO TEMPORAL (SOBRECARGADO)
     // ===============================================================
-    // Genera un nuevo temporal unico: t0, t1, t2,..., tn
+    // Genera un nuevo temporal segun el tipo:
+    // - "int"   -> t0, t1, t2...
+    // - "float" -> f0, f1, f2...
+    // - otros   -> t0, t1, t2... (por defecto entero)
+    // Retorna: String - temporal con formato "tX" o "fX"
+    // ===============================================================
+    public static String nuevoTemp(String tipo) {
+        if (tipo != null && tipo.equals("float")) {
+            return "f" + (contadorTempFloat++);
+        } else {
+            return "t" + (contadorTempInt++);
+        }
+    }
+
+    // ===============================================================
+    // NUEVO TEMPORAL (VERSION ANTIGUA PARA COMPATIBILIDAD)
+    // ===============================================================
+    // Genera un nuevo temporal entero: t0, t1, t2,..., tn
     // Retorna: String - temporal con formato "tX"
     // ===============================================================
     public static String nuevoTemp() {
-        return "t" + (contadorTemp++);
+        return nuevoTemp("int");
     }
 
     // ===============================================================
@@ -83,5 +101,14 @@ public class GeneradorCodigo {
     // ===============================================================
     public static void emitir(String instruccion) {
         if (writer != null) writer.println(instruccion);
+    }
+    
+    // ===============================================================
+    // REINICIAR CONTADORES (PARA MULTIPLES EJECUCIONES)
+    // ===============================================================
+    public static void reiniciar() {
+        contadorTempInt = 0;
+        contadorTempFloat = 0;
+        contadorEtiq = 0;
     }
 }
