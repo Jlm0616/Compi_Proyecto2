@@ -1,67 +1,28 @@
-float~_mi_  <| int~_dif_, char~_otra_|>   |: 
-	string~_str_<-"Hola $~&¡¡:|$& |>  mundo"!
-	int ~ _var_ <- 0!
-	do ¡¡ puede dar sintactico
-	 |: 
-		do
-		 |: 
-			_var_ <- _var_ - 1! ¡¡semantico
-		 :|
-		 
-		 while <| <|true @ greather_te <|5, <| 5+3 |> |> |> |> !¡¡ REPARAR ESTO Y CON greather_te Y OTROS
-		int ~ _var2_ !
-			cin ~ _var2_ !
-			break!
-	:| while <|<|true @ greather_te <|5, <| 5+3 |> |> |>|> !
+int ~ suma <| int ~ a, float ~ b |> |:
+    return ~ a !
+:|
 
-		if  <| true |> 
-		 |: 
-			cout ~ "entra al if" !
-		 :| 
-		if <| true |> 
-		 |: 
-			 <| _var_ |> !
-		 :| 
-		else
-		 |: 
-			switch ~ <|5|>  ¡¡semantico
-			 |: 
-				case~1: 
-					cout ~ "entra al case 1" !
-					_otra_ <- 'A' !
-				case~2:
-					_otra_ <- 'B' !
-					break!
-				default: ¡¡ sintactico
-			 :| 
-			switch ~ <| _otra_ |>  ¡¡semantico
-			 |: 
-				case~ '4': 
-					cout ~ "un case" !
-			 :| 
-		 :| 
+float ~ division <| float ~ x, float ~ y |> |:
+    return ~ x !
+:|
 
-	return~1.4! ¡¡semantico
-  :| 
+bool ~ esMayor <| int ~ n1, int ~ n2 |> |:
+    return ~ greather_t <| n1, n2 |> !
+:|
 
- bool~_miOtraFun_  <|  |>   |: 
-	return~true! ¡¡semantico
-  :| 
+empty ~ __main__ ~ <| |> |:
 
-int ~ _f_ <| |>   |:
-	return~1! ¡¡semantico
- :|
+    ¡¡ Variables basicas
+    int ~ x <- 5 !
+	float ~ pi <- 3.14 !
 
- empty ~ __main__ ~ <|  |>   |: ¡¡ semantico tipo void
-	int ~ _i_ <- 5!
-	int ~_arr_<<67>><<67>>!  ¡¡ semantico
-	bool ~ _b1_ ! ¡¡semantico
-	string ~ _s1_ ! ¡¡semantico
+    ¡¡ Arreglo correcto
+    int ~ matriz <<2>> <<2>> <- |: |: 1, 2 :| , |: 3, 4 :| :| !
 
-	
-	cin ~  _i_  ! ¡¡semantico
-	cout ~  5  ! ¡¡semantico
-	cout ~ 6//7 !
+    ¡¡ Llamadas a funciones correctas
+    int ~ r1 <- suma <| 5, 3.14 |> !
+    bool ~ r2 <- esMayor <| x, 3 |> !
 
-	return~1+_f_ <|  |> !
- :| 
+	matriz <<2>> <<6>> <- 5!
+
+:|

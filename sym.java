@@ -6,61 +6,61 @@
 /** CUP generated class containing symbol constants. */
 public class sym {
   /* terminals */
-  public static final int LESS_TE = 22;
+  public static final int LESS_TE = 23;
   public static final int CHAR = 6;
-  public static final int OPERADOR_LOGICO_BINARIO = 53;
-  public static final int EMPTY = 48;
-  public static final int NOTACION_CIENTIFICA = 42;
-  public static final int DELIMITADOR_EXP = 27;
-  public static final int FIN_INDICE = 33;
+  public static final int OPERADOR_LOGICO_BINARIO = 45;
+  public static final int EMPTY = 19;
+  public static final int NOTACION_CIENTIFICA = 49;
+  public static final int DELIMITADOR_EXP = 28;
+  public static final int FIN_INDICE = 34;
   public static final int CASE = 13;
-  public static final int DOS_PUNTOS = 35;
+  public static final int DOS_PUNTOS = 36;
   public static final int INT = 3;
-  public static final int GREATER_TE = 24;
-  public static final int SEPARADOR = 26;
-  public static final int OPERADOR_LOGICO_UNARIO = 54;
-  public static final int IDENTIFICADOR = 47;
+  public static final int GREATER_TE = 25;
+  public static final int SEPARADOR = 27;
+  public static final int OPERADOR_LOGICO_UNARIO = 46;
+  public static final int IDENTIFICADOR = 54;
   public static final int PALABRA_MAIN = 2;
-  public static final int CARACTER = 45;
-  public static final int GREATER_T = 23;
-  public static final int INICIO_BLOQUE = 28;
+  public static final int CARACTER = 52;
+  public static final int GREATER_T = 24;
+  public static final int INICIO_BLOQUE = 29;
   public static final int BOOL = 5;
-  public static final int INCREMENTO = 51;
-  public static final int INICIO_PARENTESIS = 30;
+  public static final int INCREMENTO = 43;
+  public static final int INICIO_PARENTESIS = 31;
   public static final int IF = 8;
-  public static final int NUMERO_FLOTANTE = 41;
+  public static final int NUMERO_FLOTANTE = 48;
   public static final int EOF = 0;
   public static final int RETURN = 15;
-  public static final int EQUAL = 19;
-  public static final int DECREMENTO = 52;
+  public static final int EQUAL = 20;
+  public static final int DECREMENTO = 44;
   public static final int error = 1;
-  public static final int COMA = 34;
-  public static final int CADENA = 44;
-  public static final int MODULO = 49;
-  public static final int MENOS = 37;
+  public static final int COMA = 35;
+  public static final int CADENA = 51;
+  public static final int MODULO = 41;
+  public static final int MENOS = 38;
   public static final int CIN = 17;
   public static final int BREAK = 16;
-  public static final int ASIGNACION = 25;
+  public static final int ASIGNACION = 26;
   public static final int SWITCH = 12;
-  public static final int POTENCIA = 50;
-  public static final int INICIO_INDICE = 32;
+  public static final int POTENCIA = 42;
+  public static final int INICIO_INDICE = 33;
   public static final int ELSE = 9;
   public static final int COUT = 18;
-  public static final int N_EQUAL = 20;
+  public static final int N_EQUAL = 21;
   public static final int WHILE = 11;
   public static final int DEFAULT = 14;
   public static final int FLOAT = 4;
-  public static final int FIN_BLOQUE = 29;
-  public static final int BOOLEANO = 46;
+  public static final int FIN_BLOQUE = 30;
+  public static final int BOOLEANO = 53;
   public static final int STRING = 7;
-  public static final int FIN_PARENTESIS = 31;
-  public static final int DIVISION = 39;
-  public static final int LESS_T = 21;
-  public static final int FRACCIONARIO = 43;
-  public static final int NUMERO_ENTERO = 40;
+  public static final int FIN_PARENTESIS = 32;
+  public static final int DIVISION = 40;
+  public static final int LESS_T = 22;
+  public static final int FRACCIONARIO = 50;
+  public static final int NUMERO_ENTERO = 47;
   public static final int DO = 10;
-  public static final int MULTIPLICACION = 38;
-  public static final int MAS = 36;
+  public static final int MULTIPLICACION = 39;
+  public static final int MAS = 37;
   public static final String[] terminalNames = new String[] {
   "EOF",
   "error",
@@ -81,6 +81,7 @@ public class sym {
   "BREAK",
   "CIN",
   "COUT",
+  "EMPTY",
   "EQUAL",
   "N_EQUAL",
   "LESS_T",
@@ -102,6 +103,12 @@ public class sym {
   "MENOS",
   "MULTIPLICACION",
   "DIVISION",
+  "MODULO",
+  "POTENCIA",
+  "INCREMENTO",
+  "DECREMENTO",
+  "OPERADOR_LOGICO_BINARIO",
+  "OPERADOR_LOGICO_UNARIO",
   "NUMERO_ENTERO",
   "NUMERO_FLOTANTE",
   "NOTACION_CIENTIFICA",
@@ -109,14 +116,7 @@ public class sym {
   "CADENA",
   "CARACTER",
   "BOOLEANO",
-  "IDENTIFICADOR",
-  "EMPTY",
-  "MODULO",
-  "POTENCIA",
-  "INCREMENTO",
-  "DECREMENTO",
-  "OPERADOR_LOGICO_BINARIO",
-  "OPERADOR_LOGICO_UNARIO"
+  "IDENTIFICADOR"
   };
 }
 
