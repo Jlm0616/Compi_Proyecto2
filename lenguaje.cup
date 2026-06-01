@@ -33,11 +33,13 @@ parser code {:
         String nombre;
         String tipo;
         int linea;
+        String categoria;
 
-        Simbolo(String nombre, String tipo, int linea) {
-            this.nombre = nombre;
-            this.tipo   = tipo;
-            this.linea  = linea;
+        Simbolo(String nombre, String tipo, int linea, String categoria) {
+            this.nombre    = nombre;
+            this.tipo      = tipo;
+            this.linea     = linea;
+            this.categoria = categoria;
         }
     }
 
@@ -160,7 +162,18 @@ parser code {:
         if (ambito.containsKey(nombre)) {
             errorSemantico("Linea " + linea + ": variable '" + nombre + "' ya fue declarada en este ambito.");
         } else {
-            ambito.put(nombre, new Simbolo(nombre, tipo, linea));
+            ambito.put(nombre, new Simbolo(nombre, tipo, linea, "variable"));
+        }
+    }
+
+    // Registra un parametro en la tabla del ambito actual
+    public static void agregarParametro(String nombre, String tipo, int linea) {
+        if (pilaTablas.isEmpty()) return;
+        java.util.HashMap<String, Simbolo> ambito = pilaTablas.peek();
+        if (ambito.containsKey(nombre)) {
+            errorSemantico("Linea " + linea + ": parametro '" + nombre + "' ya fue declarado en este ambito.");
+        } else {
+            ambito.put(nombre, new Simbolo(nombre, tipo, linea, "parametro"));
         }
     }
 
@@ -170,11 +183,11 @@ parser code {:
             System.out.println(indentacion + "(sin variables)");
             return;
         }
-        System.out.println(indentacion + String.format("%-20s %-10s %s", "Variable", "Tipo", "Linea"));
-        System.out.println(indentacion + String.format("%-20s %-10s %s", "--------", "----", "-----"));
+        System.out.println(indentacion + String.format("%-20s %-10s %-12s %s", "Variable", "Tipo", "Categoria", "Linea"));
+        System.out.println(indentacion + String.format("%-20s %-10s %-12s %s", "--------", "----", "---------", "-----"));
         for (java.util.Map.Entry<String, Simbolo> e : tabla.entrySet()) {
             Simbolo s = e.getValue();
-            System.out.println(indentacion + String.format("%-20s %-10s %s", s.nombre, s.tipo, s.linea));
+            System.out.println(indentacion + String.format("%-20s %-10s %-12s %s", s.nombre, s.tipo, s.categoria, s.linea));
         }
     }
     
@@ -649,31 +662,96 @@ contenido_programa ::= lista_sentencias ;
 // ===============================================================
 
 funcion ::= INT SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "int"); tipoFuncionActual = "int"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
-                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
+              {: 
+                 if (tablaFunciones.containsKey((String)id)) {
+                     errorSemantico("Linea " + idleft + ": funcion '" + id + "' ya fue declarada.");
+                     tipoFuncionActual = "int";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope("DUPLICADA_" + (String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + "_duplicada:");
+                 } else {
+                     tablaFunciones.put((String)id, "int");
+                     tipoFuncionActual = "int";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope((String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + ":");
+                 }
+              :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | FLOAT SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "float"); tipoFuncionActual = "float"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
-                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
+              {: 
+                 if (tablaFunciones.containsKey((String)id)) {
+                     errorSemantico("Linea " + idleft + ": funcion '" + id + "' ya fue declarada.");
+                     tipoFuncionActual = "float";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope("DUPLICADA_" + (String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + "_duplicada:");
+                 } else {
+                     tablaFunciones.put((String)id, "float");
+                     tipoFuncionActual = "float";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope((String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + ":");
+                 }
+              :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | BOOL SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "bool"); tipoFuncionActual = "bool"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
-                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
+              {: 
+                 if (tablaFunciones.containsKey((String)id)) {
+                     errorSemantico("Linea " + idleft + ": funcion '" + id + "' ya fue declarada.");
+                     tipoFuncionActual = "bool";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope("DUPLICADA_" + (String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + "_duplicada:");
+                 } else {
+                     tablaFunciones.put((String)id, "bool");
+                     tipoFuncionActual = "bool";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope((String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + ":");
+                 }
+              :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | CHAR SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "char"); tipoFuncionActual = "char"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
-                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
+              {: 
+                 if (tablaFunciones.containsKey((String)id)) {
+                     errorSemantico("Linea " + idleft + ": funcion '" + id + "' ya fue declarada.");
+                     tipoFuncionActual = "char";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope("DUPLICADA_" + (String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + "_duplicada:");
+                 } else {
+                     tablaFunciones.put((String)id, "char");
+                     tipoFuncionActual = "char";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope((String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + ":");
+                 }
+              :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :}
           | STRING SEPARADOR IDENTIFICADOR:id
-              {: tablaFunciones.put((String)id, "string"); tipoFuncionActual = "string"; parametrosActuales = new java.util.ArrayList<>(); pushScope((String)id);
-                 GeneradorCodigo.emitir("\n" + (String)id + ":"); :}
+              {: 
+                 if (tablaFunciones.containsKey((String)id)) {
+                     errorSemantico("Linea " + idleft + ": funcion '" + id + "' ya fue declarada.");
+                     tipoFuncionActual = "string";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope("DUPLICADA_" + (String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + "_duplicada:");
+                 } else {
+                     tablaFunciones.put((String)id, "string");
+                     tipoFuncionActual = "string";
+                     parametrosActuales = new java.util.ArrayList<>();
+                     pushScope((String)id);
+                     GeneradorCodigo.emitir("\n" + (String)id + ":");
+                 }
+              :}
               INICIO_PARENTESIS parametros FIN_PARENTESIS INICIO_BLOQUE lista_sentencias FIN_BLOQUE
               {: tablaParametros.put((String)id, new java.util.ArrayList<>(parametrosActuales)); popScope(); :} ;
-              
+
 /*Lista de 0 o mas funciones*/
 lista_funciones ::= funcion lista_funciones | /* vacio */ ;
 
@@ -684,23 +762,24 @@ lista_funciones ::= funcion lista_funciones | /* vacio */ ;
 parametros ::= lista_parametros | /* vacio */ ;
 
 /* Lista de parametros separados por coma */
-lista_parametros ::= parametro | parametro COMA lista_parametros ;
+lista_parametros ::= parametro 
+                   | lista_parametros COMA parametro ;
 
 /* FIX: factorizado con parametro_resto para evitar conflictos y reducir repeticion */
 parametro ::= INT SEPARADOR IDENTIFICADOR:id parametro_resto
-                {: agregarSimbolo((String)id, "int", idleft); parametrosActuales.add("int"); :}
+                {: agregarParametro((String)id, "int", idleft); parametrosActuales.add("int"); GeneradorCodigo.emitir("    param " + id); :}
             | INT SEPARADOR IDENTIFICADOR:id array parametro_resto
-                {: agregarSimbolo((String)id, "int[][]", idleft); parametrosActuales.add("int[][]"); :}
+                {: agregarParametro((String)id, "int[][]", idleft); parametrosActuales.add("int[][]"); GeneradorCodigo.emitir("    param " + id); :}
             | FLOAT SEPARADOR IDENTIFICADOR:id array parametro_resto
-                {: agregarSimbolo((String)id, "float[][]", idleft); parametrosActuales.add("float[][]"); :}
+                {: agregarParametro((String)id, "float[][]", idleft); parametrosActuales.add("float[][]"); GeneradorCodigo.emitir("    param " + id); :}
             | FLOAT SEPARADOR IDENTIFICADOR:id parametro_resto
-                {: agregarSimbolo((String)id, "float", idleft); parametrosActuales.add("float"); :}
+                {: agregarParametro((String)id, "float", idleft); parametrosActuales.add("float"); GeneradorCodigo.emitir("    param " + id); :}
             | BOOL SEPARADOR IDENTIFICADOR:id parametro_resto
-                {: agregarSimbolo((String)id, "bool", idleft); parametrosActuales.add("bool"); :}
+                {: agregarParametro((String)id, "bool", idleft); parametrosActuales.add("bool"); GeneradorCodigo.emitir("    param " + id); :}
             | CHAR SEPARADOR IDENTIFICADOR:id parametro_resto
-                {: agregarSimbolo((String)id, "char", idleft); parametrosActuales.add("char"); :}
+                {: agregarParametro((String)id, "char", idleft); parametrosActuales.add("char"); GeneradorCodigo.emitir("    param " + id); :}
             | STRING SEPARADOR IDENTIFICADOR:id parametro_resto
-                {: agregarSimbolo((String)id, "string", idleft); parametrosActuales.add("string"); :} ;
+                {: agregarParametro((String)id, "string", idleft); parametrosActuales.add("string"); GeneradorCodigo.emitir("    param " + id); :} ;
 
 /* Valor por defecto opcional para parametro */
 parametro_resto ::= /* vacio */ 
@@ -1197,11 +1276,12 @@ expresion ::= exp_logica:e{: RESULT = e; :};
 // ---------------------------------------------------------------
 
 exp_logica ::= exp_relacional:e1 resto_logica:r
-                {: 
-                    String tipo1 = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                {:
+                    String tipo1  = e1.contains("|") ? e1.split("\\|")[0] : e1;
                     String lugar1 = e1.contains("|") ? e1.split("\\|")[1] : e1;
-                    String tipoR = r != null ? (r.contains("|") ? r.split("\\|")[0] : r) : null;
+                    String opR    = r != null ? (r.contains("|") ? r.split("\\|")[0] : null) : null;
                     String lugarR = r != null ? (r.contains("|") ? r.split("\\|")[1] : r) : null;
+                    String tipoR  = r != null ? (r.contains("|") ? r.split("\\|")[2] : r) : null;
                     if (tipoR != null && !tipoR.equals("error")) {
                         if (!tipo1.equals("bool") || !tipoR.equals("bool")) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Operadores logicos requieren tipos bool.");
@@ -1217,7 +1297,20 @@ exp_logica ::= exp_relacional:e1 resto_logica:r
                 :};
 
 /* Operadores logicos binarios en cadena (and, or) */
-resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {: RESULT = e; :}
+resto_logica ::= OPERADOR_LOGICO_BINARIO exp_relacional:e resto_logica:r {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
+                        String lugar = e.contains("|") ? e.split("\\|")[1] : e;
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " @ " + lugarR);
+                            RESULT = "@|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "@|" + lugar + "|" + tipo;
+                        }
+                    :}
                 | /* vacio */ {: RESULT = null; :};
 
 // ---------------------------------------------------------------
@@ -1343,15 +1436,35 @@ exp_aritmetica ::= exp_termino:e1 resto_aritmetica:r {:
 
 
 /* Operadores de suma y resta en cadena */
-resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r {: 
-                        String tipo = e.contains("|") ? e.split("\\|")[0] : e;
+resto_aritmetica ::= MAS exp_termino:e resto_aritmetica:r {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
                         String lugar = e.contains("|") ? e.split("\\|")[1] : e;
-                        RESULT = "+|" + lugar + "|" + tipo; :}
-                    | MENOS exp_termino:e resto_aritmetica:r {: 
-                        String tipo = e.contains("|") ? e.split("\\|")[0] : e;
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
+                            RESULT = "+|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "+|" + lugar + "|" + tipo;
+                        }
+                    :}
+                    | MENOS exp_termino:e resto_aritmetica:r {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
                         String lugar = e.contains("|") ? e.split("\\|")[1] : e;
-                        RESULT = "-|" + lugar + "|" + tipo; :}
-                    | /* vacio */  {: RESULT = null; :};
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
+                            RESULT = "-|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "-|" + lugar + "|" + tipo;
+                        }
+                    :}
+                    | /* vacio */ {: RESULT = null; :};
 
 // ---------------------------------------------------------------
 // 5.17.4 EXPRESIONES DE TERMINO (MULTIPLICACION, DIVISION, MODULO)
@@ -1361,9 +1474,9 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                     String tipo = e1.contains("|") ? e1.split("\\|")[0] : e1;
                     String lugar = e1.contains("|") ? e1.split("\\|")[1] : e1;
                     if (r != null && !r.equals("error")) {
-                        String opR   = r.split("\\|")[0];
-                        String tipoR = r.split("\\|")[1];
-                        String lugarR = r.split("\\|")[2];
+                        String opR    = r.split("\\|")[0];
+                        String lugarR = r.split("\\|")[1];  // lugar en [1]
+                        String tipoR  = r.split("\\|")[2];  // tipo en [2]
                         if (opR.equals("%") && !tipo.equals("int") && !tipo.equals("error")) {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": el operador '%' solo aplica a tipo int, se encontro tipo '" + tipo + "'.");
                             RESULT = "error|?";
@@ -1375,7 +1488,7 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                                            : opR.equals("/") ? "division" 
                                            : "modulo";
                             validarTipos(tipo, tipoR, nombreOp, ((Symbol)CUP$parser$stack.peek()).left);
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
                             GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
                             RESULT = tipo + "|" + t;
                         }
@@ -1385,9 +1498,48 @@ exp_termino ::= exp_factor:e1 resto_termino:r {:
                 :};
 
 /* Operadores de multiplicacion, division y modulo en cadena */
-resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = "*|" + e; :}
-                | DIVISION exp_factor:e resto_termino:r       {: RESULT = "/|" + e; :}
-                | MODULO exp_factor:e resto_termino:r         {: RESULT = "%|" + e; :}
+resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
+                        String lugar = e.contains("|") ? e.split("\\|")[1] : e;
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
+                            RESULT = "*|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "*|" + lugar + "|" + tipo;
+                        }
+                    :}
+                | DIVISION exp_factor:e resto_termino:r {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
+                        String lugar = e.contains("|") ? e.split("\\|")[1] : e;
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
+                            RESULT = "/|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "/|" + lugar + "|" + tipo;
+                        }
+                    :}
+                | MODULO exp_factor:e resto_termino:r {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
+                        String lugar = e.contains("|") ? e.split("\\|")[1] : e;
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
+                            RESULT = "%|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "%|" + lugar + "|" + tipo;
+                        }
+                    :}
                 | /* vacio */ {: RESULT = null; :};
 
 
@@ -1397,13 +1549,14 @@ resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = "*|" +
 
 exp_potencia ::= valor:e1 resto_potencia:r
                     {:  
-                        String tipo = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String tipo  = e1.contains("|") ? e1.split("\\|")[0] : e1;
                         String lugar = e1.contains("|") ? e1.split("\\|")[1] : e1;
                         if (r != null && !r.equals("error")) {
-                            String tipoR  = r.split("\\|")[1];
-                            String lugarR = r.split("\\|")[2];
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
                             validarTipos(tipo, tipoR, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
-                            String t = GeneradorCodigo.nuevoTemp();
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
                             GeneradorCodigo.emitir("    " + t + " = " + lugar + " ^ " + lugarR);
                             RESULT = tipo + "|" + t;
                         } else {
@@ -1412,9 +1565,22 @@ exp_potencia ::= valor:e1 resto_potencia:r
                     :};
 
 /* Operador potencia en cadena */
-resto_potencia ::= POTENCIA valor:e resto_potencia:r 
-                    {: RESULT = "^|" + e; :}
-                | /* vacio */  {: RESULT = null; :};
+resto_potencia ::= POTENCIA valor:e resto_potencia:r
+                    {:
+                        String tipo  = e.contains("|") ? e.split("\\|")[0] : e;
+                        String lugar = e.contains("|") ? e.split("\\|")[1] : e;
+                        if (r != null) {
+                            String opR    = r.split("\\|")[0];
+                            String lugarR = r.split("\\|")[1];
+                            String tipoR  = r.split("\\|")[2];
+                            String t = GeneradorCodigo.nuevoTemp(tipo);
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " " + opR + " " + lugarR);
+                            RESULT = "^|" + t + "|" + tipo;
+                        } else {
+                            RESULT = "^|" + lugar + "|" + tipo;
+                        }
+                    :}
+                | /* vacio */ {: RESULT = null; :};
 
 // ---------------------------------------------------------------
 // 5.17.6 FACTORES (MENOS UNARIO, INCREMENTO, DECREMENTO, NOT)
