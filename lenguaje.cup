@@ -312,7 +312,10 @@ parser code {:
 
     // Pilas para break anidados
     static java.util.Stack<String> pilaBreak = new java.util.Stack<>();
+
     static java.util.Stack<Integer> pilaContadorWhile = new java.util.Stack<>();
+
+    static java.util.Stack<java.util.ArrayList<String>> pilaArgumentos = new java.util.Stack<>();
 
     // Guarda el tipo del switch
     private void setTipoSwitch(int switchId, String tipo) {
@@ -711,9 +714,9 @@ argumentos ::= lista_argumentos | /* vacio */ ;
 
 /* Argumentos separados por coma */
 lista_argumentos ::= expresion:e 
-                        {: argumentosActuales.add((String)e); :}
+                        {: pilaArgumentos.peek().add((String)e); :}
                    | expresion:e 
-                        {: argumentosActuales.add((String)e); :}
+                        {: pilaArgumentos.peek().add((String)e); :}
                      COMA lista_argumentos ;
 
 // ===============================================================
@@ -873,31 +876,49 @@ asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {:
 // ===============================================================
 
 llamada_funcion_exp ::= IDENTIFICADOR:id
-    {: argumentosActuales = new java.util.ArrayList<>(); :} 
+    {: 
+        pilaArgumentos.push(new java.util.ArrayList<>());
+        argumentosActuales = pilaArgumentos.peek();
+    :} 
     INICIO_PARENTESIS argumentos FIN_PARENTESIS 
     {:
+        java.util.ArrayList<String> misArgumentos = pilaArgumentos.pop();
+        argumentosActuales = pilaArgumentos.isEmpty() ? new java.util.ArrayList<>() : pilaArgumentos.peek();
+        
         if (!tablaFunciones.containsKey((String)id)) {
             errorSemantico("Linea " + idleft + ": funcion '" + id + "' no fue declarada.");
             RESULT = "error|?";
         } else {
             java.util.ArrayList<String> params = tablaParametros.get((String)id);
-            if (params != null && params.size() != argumentosActuales.size()) {
-                errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
-                RESULT = "error|?";
+            if (params != null && params.size() != misArgumentos.size()) {
+                errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + misArgumentos.size() + ".");
+                for (int i = 0; i < misArgumentos.size(); i++) {
+                    String lugarArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[1] : misArgumentos.get(i);
+                    GeneradorCodigo.emitir("    param " + lugarArg);
+                }
+                String t = GeneradorCodigo.nuevoTemp();
+                GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + misArgumentos.size());
+                RESULT = tablaFunciones.get((String)id) + "|" + t;
             } else if (params != null) {
                 for (int i = 0; i < params.size(); i++) {
-                    String tipoArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[0] : argumentosActuales.get(i);
+                    String tipoArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[0] : misArgumentos.get(i);
                     if (!params.get(i).equals(tipoArg) && !tipoArg.equals("error")) {
                         errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + tipoArg + "'.");
                     }
-                    String lugarArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[1] : argumentosActuales.get(i);
+                    String lugarArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[1] : misArgumentos.get(i);
                     GeneradorCodigo.emitir("    param " + lugarArg);
                 }
                 String t = GeneradorCodigo.nuevoTemp();
                 GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + params.size());
                 RESULT = tablaFunciones.get((String)id) + "|" + t;
             } else {
-                RESULT = tablaFunciones.get((String)id) + "|?";
+                for (int i = 0; i < misArgumentos.size(); i++) {
+                    String lugarArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[1] : misArgumentos.get(i);
+                    GeneradorCodigo.emitir("    param " + lugarArg);
+                }
+                String t = GeneradorCodigo.nuevoTemp();
+                GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + misArgumentos.size());
+                RESULT = tablaFunciones.get((String)id) + "|" + t;
             }
         }
     :} ;
@@ -1375,13 +1396,24 @@ resto_termino ::= MULTIPLICACION exp_factor:e resto_termino:r {: RESULT = "*|" +
 // ---------------------------------------------------------------
 
 exp_potencia ::= valor:e1 resto_potencia:r
-                    {:  String tipo = e1;
+                    {:  
+                        String tipo = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String lugar = e1.contains("|") ? e1.split("\\|")[1] : e1;
                         if (r != null && !r.equals("error")) {
-                            tipo = validarTipos(e1, r, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
-                        } RESULT = tipo; :};
+                            String tipoR  = r.split("\\|")[1];
+                            String lugarR = r.split("\\|")[2];
+                            validarTipos(tipo, tipoR, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " ^ " + lugarR);
+                            RESULT = tipo + "|" + t;
+                        } else {
+                            RESULT = e1;
+                        }
+                    :};
 
 /* Operador potencia en cadena */
-resto_potencia ::= POTENCIA valor:e resto_potencia:r {:  RESULT = e;:}
+resto_potencia ::= POTENCIA valor:e resto_potencia:r 
+                    {: RESULT = "^|" + e; :}
                 | /* vacio */  {: RESULT = null; :};
 
 // ---------------------------------------------------------------

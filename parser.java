@@ -1293,7 +1293,10 @@ public class parser extends java_cup.runtime.lr_parser {
 
     // Pilas para break anidados
     static java.util.Stack<String> pilaBreak = new java.util.Stack<>();
+
     static java.util.Stack<Integer> pilaContadorWhile = new java.util.Stack<>();
+
+    static java.util.Stack<java.util.ArrayList<String>> pilaArgumentos = new java.util.Stack<>();
 
     // Guarda el tipo del switch
     private void setTipoSwitch(int switchId, String tipo) {
@@ -1452,7 +1455,7 @@ class CUP$parser$actions {
 		Object n = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
 		
                 String nStr = String.valueOf(n);
-                String t = GeneradorCodigo.nuevoTemp("float");  
+                String t = GeneradorCodigo.nuevoTemp("float"); 
                 GeneradorCodigo.emitir("    " + t + " = " + nStr);
                 RESULT = "float|" + t + "|" + nStr;
             
@@ -1469,7 +1472,7 @@ class CUP$parser$actions {
 		Object n = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
 		
                 String nStr = String.valueOf(n);
-                String t = GeneradorCodigo.nuevoTemp("float");  
+                String t = GeneradorCodigo.nuevoTemp("float");  // 
                 GeneradorCodigo.emitir("    " + t + " = " + nStr);
                 RESULT = "float|" + t + "|" + nStr;
             
@@ -1890,7 +1893,7 @@ class CUP$parser$actions {
 		int eleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 argumentosActuales.add((String)e); 
+		 pilaArgumentos.peek().add((String)e); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("lista_argumentos",51, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1902,7 +1905,7 @@ class CUP$parser$actions {
 		int eleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int eright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String e = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- argumentosActuales.add((String)e); 
+ pilaArgumentos.peek().add((String)e); 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$7",61, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2433,7 +2436,10 @@ class CUP$parser$actions {
 		int idleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
- argumentosActuales = new java.util.ArrayList<>(); 
+ 
+        pilaArgumentos.push(new java.util.ArrayList<>());
+        argumentosActuales = pilaArgumentos.peek();
+    
               CUP$parser$result = parser.getSymbolFactory().newSymbol("NT$14",68, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -2448,28 +2454,43 @@ class CUP$parser$actions {
 		int idright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-4)).right;
 		Object id = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-4)).value;
 		
+        java.util.ArrayList<String> misArgumentos = pilaArgumentos.pop();
+        argumentosActuales = pilaArgumentos.isEmpty() ? new java.util.ArrayList<>() : pilaArgumentos.peek();
+        
         if (!tablaFunciones.containsKey((String)id)) {
             errorSemantico("Linea " + idleft + ": funcion '" + id + "' no fue declarada.");
             RESULT = "error|?";
         } else {
             java.util.ArrayList<String> params = tablaParametros.get((String)id);
-            if (params != null && params.size() != argumentosActuales.size()) {
-                errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + argumentosActuales.size() + ".");
-                RESULT = "error|?";
+            if (params != null && params.size() != misArgumentos.size()) {
+                errorSemantico("Linea " + idleft + ": la funcion '" + id + "' espera " + params.size() + " argumento(s) pero se encontraron " + misArgumentos.size() + ".");
+                for (int i = 0; i < misArgumentos.size(); i++) {
+                    String lugarArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[1] : misArgumentos.get(i);
+                    GeneradorCodigo.emitir("    param " + lugarArg);
+                }
+                String t = GeneradorCodigo.nuevoTemp();
+                GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + misArgumentos.size());
+                RESULT = tablaFunciones.get((String)id) + "|" + t;
             } else if (params != null) {
                 for (int i = 0; i < params.size(); i++) {
-                    String tipoArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[0] : argumentosActuales.get(i);
+                    String tipoArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[0] : misArgumentos.get(i);
                     if (!params.get(i).equals(tipoArg) && !tipoArg.equals("error")) {
                         errorSemantico("Linea " + idleft + ": argumento " + (i+1) + " de funcion '" + id + "' esperaba tipo '" + params.get(i) + "' pero se encontro '" + tipoArg + "'.");
                     }
-                    String lugarArg = argumentosActuales.get(i).contains("|") ? argumentosActuales.get(i).split("\\|")[1] : argumentosActuales.get(i);
+                    String lugarArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[1] : misArgumentos.get(i);
                     GeneradorCodigo.emitir("    param " + lugarArg);
                 }
                 String t = GeneradorCodigo.nuevoTemp();
                 GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + params.size());
                 RESULT = tablaFunciones.get((String)id) + "|" + t;
             } else {
-                RESULT = tablaFunciones.get((String)id) + "|?";
+                for (int i = 0; i < misArgumentos.size(); i++) {
+                    String lugarArg = misArgumentos.get(i).contains("|") ? misArgumentos.get(i).split("\\|")[1] : misArgumentos.get(i);
+                    GeneradorCodigo.emitir("    param " + lugarArg);
+                }
+                String t = GeneradorCodigo.nuevoTemp();
+                GeneradorCodigo.emitir("    " + t + " = call " + id + ", " + misArgumentos.size());
+                RESULT = tablaFunciones.get((String)id) + "|" + t;
             }
         }
     
@@ -3159,7 +3180,7 @@ class CUP$parser$actions {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'less_te' solo aplica a int o float.");
                             RESULT = "error|?";
                         } else {
-                            String t = GeneradorCodigo.nuevoTemp("int"); 
+                            String t = GeneradorCodigo.nuevoTemp("int");  
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " <= " + lugar2);
                             RESULT = "bool|" + t;
                         }
@@ -3217,7 +3238,7 @@ class CUP$parser$actions {
                             errorSemantico("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": 'greather_te' solo aplica a int o float.");
                             RESULT = "error|?";
                         } else {
-                            String t = GeneradorCodigo.nuevoTemp("int");  
+                            String t = GeneradorCodigo.nuevoTemp("int"); 
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " >= " + lugar2);
                             RESULT = "bool|" + t;
                         }
@@ -3313,7 +3334,7 @@ class CUP$parser$actions {
                             String tipo2 = r.split("\\|")[2];
                             validarTipos(tipo1, tipo2, "aritmetica", ((Symbol)CUP$parser$stack.peek()).left);
                             
-                            String t = GeneradorCodigo.nuevoTemp(tipo1);  
+                            String t = GeneradorCodigo.nuevoTemp(tipo1); 
                             GeneradorCodigo.emitir("    " + t + " = " + lugar1 + " " + op + " " + lugar2);
                             RESULT = tipo1 + "|" + t;
                         } else {
@@ -3473,10 +3494,20 @@ class CUP$parser$actions {
 		int rleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int rright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String r = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		  String tipo = e1;
+		  
+                        String tipo = e1.contains("|") ? e1.split("\\|")[0] : e1;
+                        String lugar = e1.contains("|") ? e1.split("\\|")[1] : e1;
                         if (r != null && !r.equals("error")) {
-                            tipo = validarTipos(e1, r, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
-                        } RESULT = tipo; 
+                            String tipoR  = r.split("\\|")[1];
+                            String lugarR = r.split("\\|")[2];
+                            validarTipos(tipo, tipoR, "potencia", ((Symbol)CUP$parser$stack.peek()).left);
+                            String t = GeneradorCodigo.nuevoTemp();
+                            GeneradorCodigo.emitir("    " + t + " = " + lugar + " ^ " + lugarR);
+                            RESULT = tipo + "|" + t;
+                        } else {
+                            RESULT = e1;
+                        }
+                    
               CUP$parser$result = parser.getSymbolFactory().newSymbol("exp_potencia",43, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -3491,7 +3522,7 @@ class CUP$parser$actions {
 		int rleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int rright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		String r = (String)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		  RESULT = e;
+		 RESULT = "^|" + e; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("resto_potencia",44, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -3648,7 +3679,7 @@ class CUP$parser$actions {
 		int sright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object s = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
 		
-                String t = GeneradorCodigo.nuevoTemp("int");  
+                String t = GeneradorCodigo.nuevoTemp("int"); 
                 GeneradorCodigo.emitir("    " + t + " = \"" + s + "\"");
                 RESULT = "string|" + t; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("valor",46, ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
