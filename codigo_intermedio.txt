@@ -1,193 +1,133 @@
 # ===== CODIGO INTERMEDIO =====
 
-sumaArreglo:
-    param arr
+fibonacci:
     param n
     t0 = 0
-    total = t0
-    return total
+    return t0
 
-esParHelper:
-    param n
-    t1 = 2
-    t2 = n % t1
-    return t2
+potencia:
+    param base
+    param exp
+    t1 = base ^ exp
+    return t1
 
-esPar:
-    param n
-    param n
-    t3 = call esParHelper, 1
-    t4 = 0
-    t5 = t3 == t4
-    return t5
-
-esImpar:
-    param n
-    param n
-    t6 = call esPar, 1
-    t7 = false
-    t8 = t6 == t7
-    return t8
-
-formula:
-    param a
-    param b
-    param c
-    param d
-    t9 = b * c
-    t10 = t9 - d
-    t11 = a + t10
-    return t11
+validar:
+    param x
+    param y
+    param z
+    t2 = 2
+    param x
+    param t2
+    t3 = call potencia, 2
+    t4 = t3 > y
+    t5 = 0
+    t6 = z != t5
+    t7 = t4 == t6
+    return t7
 
 main:
-    t12 = 1
-    t13 = 2
-    t14 = 3
-    t15 = 4
-    t16 = 5
-    t17 = 6
-    t18 = 7
-    t19 = 8
-    t20 = 9
+    t8 = 1
+    t9 = 2
+    t10 = 3
+    t11 = 4
+    t12 = 5
+    t13 = 6
+    t14 = 7
+    t15 = 8
+    t16 = 9
     mat = alloc 3, 3
-    mat[0][0] = t12
-    mat[0][1] = t13
-    mat[0][2] = t14
-    mat[1][0] = t15
-    mat[1][1] = t16
-    mat[1][2] = t17
-    mat[2][0] = t18
-    mat[2][1] = t19
-    mat[2][2] = t20
-    f0 = 1.1
-    f1 = 2.2
-    f2 = 3.3
-    f3 = 4.4
-    fmat = alloc 2, 2
-    fmat[0][0] = f0
-    fmat[0][1] = f1
-    fmat[1][0] = f2
-    fmat[1][1] = f3
+    mat[0][0] = t8
+    mat[0][1] = t9
+    mat[0][2] = t10
+    mat[1][0] = t11
+    mat[1][1] = t12
+    mat[1][2] = t13
+    mat[2][0] = t14
+    mat[2][1] = t15
+    mat[2][2] = t16
+    t17 = 4
+    x = t17
+    t18 = 15
+    y = t18
+    t19 = 0
+    z = t19
+    t20 = 0
     t21 = 0
-    t22 = 0
-    t23 = mat[t21][t22]
+    t22 = mat[t20][t21]
+    t23 = 1
     t24 = 1
-    t25 = 1
-    t26 = mat[t24][t25]
-    t27 = t23 + t26
-    val = t27
-    t28 = 0
-    t29 = 0
-    t30 = mat[t28][t29]
-    t31 = 1
+    t25 = mat[t23][t24]
+    t26 = 2
+    t27 = 2
+    t28 = mat[t26][t27]
+    param t22
+    param t25
+    param t28
+    t29 = call validar, 3
+    r1 = t29
+    param x
+    t30 = call fibonacci, 1
+    a = t30
+    t31 = 34
     t32 = 2
-    t33 = mat[t31][t32]
-    t34 = 2
+    param t31
+    param t32
+    t33 = call potencia, 2
+    b = t33
+    param x
+    t34 = call fibonacci, 1
     t35 = 0
     t36 = mat[t34][t35]
-    t37 = t33 + t36
-    mat[t28][t29] = t37
-    t38 = 0
-    i = t38
-    t39 = 0
-    j = t39
-_dowhile1_start:
-    t40 = 0
-    j = t40
-_dowhile2_start:
-    t41 = mat[i][j]
-    t42 = i + j
-    mat[i][j] = t42
-    t43 = 1
-    t44 = j + t43
-    j = t44
-    t45 = 3
-    t46 = j < t45
-    if t46 goto _dowhile2_start
-_dowhile2_end:
-    t47 = 1
-    t48 = i + t47
-    i = t48
-    t49 = 3
-    t50 = i < t49
-    if t50 goto _dowhile1_start
-_dowhile1_end:
-    t51 = 5
-    x = t51
-    t52 = 0
-    t53 = x > t52
-    ifFalse t53 goto L0
+    c = t36
+    t37 = 2
+    param x
+    param t37
+    t38 = call potencia, 2
+    k = t38
 _switch1:
     tsw1 = 1
-    t54 = 5
+    t39 = 16
 _case1_1:
-    t55 = tsw1 == 0
-    if t55 goto _case1_1_b
-    t56 = x == t54
-    if t56 goto _case1_1_b
+    t40 = tsw1 == 0
+    if t40 goto _case1_1_b
+    t41 = k == t39
+    if t41 goto _case1_1_b
     goto _case1_1_e
 _case1_1_b:
     tsw1 = 0
+_dowhile1_start:
+    t42 = 1
+    t43 = y - t42
+    y = t43
     param x
-    t57 = call esPar, 1
-    t58 = false
-    t59 = t57 == t58
-    ifFalse t59 goto L1
-    t60 = "x es impar"
-    write t60
+    param y
+    param z
+    t44 = call validar, 3
+    ifFalse t44 goto L0
+    t45 = false
+    t46 = true
+    t47 = t45 == t46
+    ifFalse t47 goto L1
+    t48 = "fibonacci de y es true"
+    write t48
     goto L2
 L1:
-    t61 = "x es par"
-    write t61
+    t49 = "fibonacci de y es false"
+    write t49
 L2:
+    goto L3
+L0:
+    t50 = "no valida"
+    write t50
+L3:
+    t51 = 0
+    t52 = y > t51
+    if t52 goto _dowhile1_start
+_dowhile1_end:
     goto _sw1_end
 _case1_1_e:
 _default1:
-    t62 = "x no es 5"
-    write t62
+    t53 = "k no es 16"
+    write t53
 _sw1_end:
-L0:
-    t63 = 0
-    t64 = x > t63
-    t65 = true
-    t66 = t64 == t65
-    t67 = 10
-    t68 = x < t67
-    t69 = true
-    t70 = t68 == t69
-    t71 = t66 == t70
-    cond = t71
-    t72 = 0
-    t73 = 0
-    t74 = mat[t72][t73]
-    t75 = 0
-    t76 = 1
-    t77 = mat[t75][t76]
-    t78 = 1
-    t79 = 0
-    t80 = mat[t78][t79]
-    t81 = 1
-    t82 = 1
-    t83 = mat[t81][t82]
-    param t74
-    param t77
-    param t80
-    param t83
-    t84 = call formula, 4
-    res = t84
-    t85 = 10
-    k = t85
-_dowhile3_start:
-    t86 = 1
-    t87 = k - t86
-    k = t87
-    t88 = 5
-    t89 = k == t88
-    ifFalse t89 goto L3
-    goto _dowhile3_end
-L3:
-    t90 = 0
-    t91 = k > t90
-    if t91 goto _dowhile3_start
-_dowhile3_end:
 # ===== FIN DEL CODIGO INTERMEDIO =====

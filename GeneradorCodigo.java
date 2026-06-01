@@ -111,4 +111,29 @@ public class GeneradorCodigo {
         contadorTempFloat = 0;
         contadorEtiq = 0;
     }
+
+    // ===============================================================
+    // CERRAR CON ERROR
+    // ===============================================================
+    // Sobreescribe el archivo con un mensaje de error y lo cierra
+    // Recibe: archivo - nombre del archivo, mensaje - mensaje de error
+    // ===============================================================
+    public static void cerrarConError(String archivo) {
+        try {
+            // Sobreescribir el archivo con solo el mensaje de error
+            PrintWriter writerError = new PrintWriter(new FileWriter(archivo));
+            writerError.println("# ===== CODIGO INTERMEDIO =====");
+            writerError.println("# Codigo intermedio no generado debido a errores en el analisis.");
+            writerError.println("# ===== FIN DEL CODIGO INTERMEDIO =====");
+            writerError.flush();
+            writerError.close();
+            // Cerrar el writer original sin escribir nada mas
+            if (writer != null) {
+                writer.flush();
+                writer.close();
+            }
+        } catch (IOException e) {
+            System.err.println("Error al cerrar archivo: " + e.getMessage());
+        }
+    }
 }

@@ -1,78 +1,55 @@
-¡¡ Funcion con arreglo como parametro
-int ~ sumaArreglo <| int ~ arr <<2>> <<2>>, int ~ n |> |:
-    int ~ total <- 0 !
-    return ~ total !
+int ~ fibonacci <| int ~ n |> |:
+    return ~ 0!
 :|
 
-¡¡ Funciones que se llaman entre si
-int ~ esParHelper <| int ~ n |> |:
-    return ~ n % 2 !
+int ~ potencia <| int ~ base, int ~ exp |> |:
+    return ~ base ^ exp !
 :|
 
-bool ~ esPar <| int ~ n |> |:
-    return ~ equal <| esParHelper <| n |>, 0 |> !
-:|
-
-bool ~ esImpar <| int ~ n |> |:
-    return ~ equal <| esPar <| n |>, false |> !
-:|
-
-¡¡ Funcion con muchos parametros
-int ~ formula <| int ~ a, int ~ b, int ~ c, int ~ d |> |:
-    return ~ a + b * c - d !
+bool ~ validar <| int ~ x, int ~ y, int ~ z |> |:
+    return ~ equal <| 
+                greather_t <| potencia <| x, 2 |>, y |>, 
+                n_equal <| z, 0 |> 
+             |> !
 :|
 
 empty ~ __main__ ~ <| |> |:
 
-    ¡¡ Arreglos y accesos
     int ~ mat <<3>> <<3>> <- |: |: 1, 2, 3 :| , |: 4, 5, 6 :| , |: 7, 8, 9 :| :| !
-    float ~ fmat <<2>> <<2>> <- |: |: 1.1, 2.2 :| , |: 3.3, 4.4 :| :| !
+    int ~ x <- 4 !
+    int ~ y <- 15 !
+    int ~ z <- 0 !
 
-    ¡¡ Operaciones con arreglos
-    int ~ val <- mat <<0>> <<0>> + mat <<1>> <<1>> !
-    mat <<0>> <<0>> <- mat <<1>> <<2>> + mat <<2>> <<0>> !
+    ¡¡ Llamada encadenada con arreglo como argumento de expresion
+    bool ~ r1 <- validar <| mat <<0>> <<0>>, mat <<1>> <<1>>, mat <<2>> <<2>> |> !
 
-    ¡¡ Do-while anidado
-    int ~ i <- 0 !
-    int ~ j <- 0 !
-    do |:
-        j <- 0 !
-        do |:
-            mat <<i>> <<j>> <- i + j !
-            j <- j + 1 !
-        :| while <| less_t <| j, 3 |> |> !
-        i <- i + 1 !
-    :| while <| less_t <| i, 3 |> |> !
+    ¡¡ Equal con resultado de fibonacci (retorna bool, no int — error semantico)
+    int ~ a <- fibonacci <| x |> !
 
-    ¡¡ Switch anidado dentro de if
-    int ~ x <- 5 !
-    if <| greather_t <| x, 0 |> |> |:
-        switch ~ <| x |> |:
-            case ~ 5 :
-                if <| equal <| esPar <| x |>, false |> |> |:
-                    cout ~ "x es impar" !
+    ¡¡ Potencia con resultado de validar (retorna bool, no int — error semantico)
+    int ~ b <- potencia <| 34, 2 |> !
+
+    ¡¡ Arreglo con indice calculado con funcion
+    int ~ c <- mat <<fibonacci <| x |>>> <<0>> !
+
+    ¡¡ Switch con resultado de potencia
+    int ~ k <- potencia <| x, 2 |> !
+    switch ~ <| k |> |:
+        case ~ 16 :
+            do |:
+                y <- y - 1 !
+                if <| validar <| x, z, z |> |> |:
+                    if <| equal <| false, true |> |> |:
+                        cout ~ "fibonacci de y es true" !
+                    :| else |:
+                        cout ~ "fibonacci de y es false" !
+                    :|
                 :| else |:
-                    cout ~ "x es par" !
+                    cout ~ "no valida" !
                 :|
-                break !
-            default :
-                cout ~ "x no es 5" !
-        :|
-    :|
-
-    ¡¡ Expresiones complejas
-    bool ~ cond <- equal <| equal <| greather_t <| x, 0 |>, true |>, equal <| less_t <| x, 10 |>, true |> |> !
-    
-    ¡¡ Llamadas encadenadas
-    int ~ res <- formula <| mat <<0>> <<0>>, mat <<0>> <<1>>, mat <<1>> <<0>>, mat <<1>> <<1>> |> !
-
-    ¡¡ Do-while con break
-    int ~ k <- 10 !
-    do |:
-        k <- k - 1 !
-        if <| equal <| k, 5 |> |> |:
+            :| while <| greather_t <| y, 0 |> |> !
             break !
-        :|
-    :| while <| greather_t <| k, 0 |> |> !
-
+        default :
+            cout ~ "k no es 16" !
+    :|
 :|
