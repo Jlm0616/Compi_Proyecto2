@@ -842,7 +842,8 @@ declaracion ::= INT SEPARADOR IDENTIFICADOR:id
                 {: tipoDeclaracionActual = "string"; nombreDeclaracionActual = (String)id; agregarSimbolo((String)id, "string", idleft); :}
                 declaracion_variable_resto
 
-            | error SEPARADOR IDENTIFICADOR declaracion_resto {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :} ;
+            | error SEPARADOR IDENTIFICADOR declaracion_resto {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Tipo no reconocido, se asume 'int'"); :} 
+            | error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Declaracion invalida, se omite"); :};
 
 // ===============================================================
 // 5.8.1 DECLARACION CON INICIALIZACION
@@ -948,7 +949,8 @@ asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e DELIMITADOR_EXP {:
                    String posicion = partes.length >= 3 ? partes[2] : arr;
                    String lugarE = e.contains("|") ? e.split("\\|")[1] : e;
                    GeneradorCodigo.emitir("    " + posicion + " = " + lugarE); :}
-             | IDENTIFICADOR error expresion DELIMITADOR_EXP  {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :};
+             | IDENTIFICADOR error expresion DELIMITADOR_EXP  {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-2)).left + ": Operador de asignacion incorrecto, se asume '<-'"); :}
+             | error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Asignacion invalida, se omite"); :};
 
 // ===============================================================
 // 5.10 LLAMADA A FUNCION
@@ -1036,7 +1038,8 @@ cin_sentencia ::= CIN SEPARADOR IDENTIFICADOR:id DELIMITADOR_EXP {:
         } else {
             GeneradorCodigo.emitir("    read " + id);
         }
-    :};
+    :}
+    | CIN error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Cin invalido, se omite");:};
 
 cout_sentencia ::= COUT SEPARADOR lista_escritura DELIMITADOR_EXP
                  | COUT error DELIMITADOR_EXP {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Escritura invalida, se omite"); :};
@@ -1119,30 +1122,20 @@ if_cabeza ::= IF INICIO_PARENTESIS expresion:e FIN_PARENTESIS
 else_cabeza  ::= ELSE {: contadorElse++;  nombreBloqueActual = "ELSE "  + contadorElse; :} ;
 while_cabeza ::= DO {: contadorWhile++; nivelBreak++; nombreBloqueActual = "DO-WHILE " + contadorWhile; String etqInicio = "_dowhile" + contadorWhile + "_start"; GeneradorCodigo.emitirEtiqueta(etqInicio); setEtqInicioWhile(contadorWhile, etqInicio); pilaBreak.push("_dowhile" + contadorWhile + "_end"); pilaContadorWhile.push(contadorWhile); :};
 
-if_sentencia ::= if_cabeza:cab bloque_simple
-    {:
-        GeneradorCodigo.emitirEtiqueta((String)cab);
-    :}
-  | if_cabeza:cab bloque_simple else_cabeza:el
-    {:
+if_sentencia ::= if_cabeza:cab bloque_simple {: GeneradorCodigo.emitirEtiqueta((String)cab); :}
+  | if_cabeza:cab bloque_simple else_cabeza:el {:
         String etqFin = GeneradorCodigo.nuevaEtiqueta();
         GeneradorCodigo.emitir("    goto " + etqFin);
         GeneradorCodigo.emitirEtiqueta((String)cab);
-        RESULT = etqFin;
-    :}
-    bloque_simple
-    {:
-        GeneradorCodigo.emitirEtiqueta((String)RESULT);
-    :}
-  | IF error bloque_simple
-    {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); :} ;
+        RESULT = etqFin; :}
+    bloque_simple {:  GeneradorCodigo.emitirEtiqueta((String)RESULT); :}
+  | IF error bloque_simple {: mensajeRecuperacion("Linea " + ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left + ": Condicion de if invalida, se asume verdadero"); :} ;
 
 // ===============================================================
 // 5.15 SENTENCIA DO-WHILE
 // ===============================================================
 
-do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP
-    {:
+do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expresion:e FIN_PARENTESIS DELIMITADOR_EXP{:
         nivelBreak--;
         pilaBreak.pop();
         int miWhile = pilaContadorWhile.pop();
@@ -1154,8 +1147,12 @@ do_while_sentencia ::= while_cabeza bloque_simple WHILE INICIO_PARENTESIS expres
         String etqInicio = getEtqInicioWhile(miWhile);
         String etqFin    = "_dowhile" + miWhile + "_end";
         GeneradorCodigo.emitir("    if " + lugarE + " goto " + etqInicio);
-        GeneradorCodigo.emitirEtiqueta(etqFin);
-    :};
+        GeneradorCodigo.emitirEtiqueta(etqFin); :}
+    | DO error DELIMITADOR_EXP {:
+        mensajeRecuperacion("Linea " + ((Symbol)CUP$parser$stack.peek()).left + ": Do-while invalido, se omite");
+        nivelBreak--;
+        if (!pilaBreak.isEmpty()) pilaBreak.pop();
+        if (!pilaContadorWhile.isEmpty()) pilaContadorWhile.pop(); :} ;
 
 // ===============================================================
 // 5.16 SENTENCIA SWITCH

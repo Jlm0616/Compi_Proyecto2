@@ -1,55 +1,25 @@
-int ~ fibonacci <| int ~ n |> |:
-    return ~ 0!
-:|
+¡¡ PRUEBA DE RECUPERACION DE ERRORES
 
-int ~ potencia <| int ~ base, int ~ exp |> |:
-    return ~ base ^ exp !
-:|
-
-bool ~ validar <| int ~ x, int ~ y, int ~ z |> |:
-    return ~ equal <| 
-                greather_t <| potencia <| x, 2 |>, y |>, 
-                n_equal <| z, 0 |> 
-             |> !
-:|
-
-empty ~ __main__ ~ <| |> |:
-
-    int ~ mat <<3>> <<3>> <- |: |: 1, 2, 3 :| , |: 4, 5, 6 :| , |: 7, 8, 9 :| :| !
-    int ~ x <- 4 !
-    int ~ y <- 15 !
-    int ~ z <- 0 !
-
-    ¡¡ Llamada encadenada con arreglo como argumento de expresion
-    bool ~ r1 <- validar <| mat <<0>> <<0>>, mat <<1>> <<1>>, mat <<2>> <<2>> |> !
-
-    ¡¡ Equal con resultado de fibonacci (retorna bool, no int — error semantico)
-    int ~ a <- fibonacci <| x |> !
-
-    ¡¡ Potencia con resultado de validar (retorna bool, no int — error semantico)
-    int ~ b <- potencia <| 34, 2 |> !
-
-    ¡¡ Arreglo con indice calculado con funcion
-    int ~ c <- mat <<fibonacci <| x |>>> <<0>> !
-
-    ¡¡ Switch con resultado de potencia
-    int ~ k <- potencia <| x, 2 |> !
-    switch ~ <| k |> |:
-        case ~ 16 :
-            do |:
-                y <- y - 1 !
-                if <| validar <| x, z, z |> |> |:
-                    if <| equal <| false, true |> |> |:
-                        cout ~ "fibonacci de y es true" !
-                    :| else |:
-                        cout ~ "fibonacci de y es false" !
-                    :|
-                :| else |:
-                    cout ~ "no valida" !
-                :|
-            :| while <| greather_t <| y, 0 |> |> !
-            break !
-        default :
-            cout ~ "k no es 16" !
-    :|
+empty ~ __main__ ~ <| |>
+|:
+    ¡¡ ERROR LEXICO: caracter no reconocido
+    int ~ x <- 10 ! $ % &
+    
+    ¡¡ ERROR SINTACTICO: falta separador '~'
+    int y <- 20 !
+    
+    ¡¡ ERROR SINTACTICO: falta delimitador '!'
+    int ~ z <- 30
+    
+    ¡¡ ERROR SEMANTICO: variable no declarada
+    w <- x + y !
+    
+    ¡¡ ERROR SEMANTICO: tipo incompatible
+    float ~ precio <- 100 !
+    
+    ¡¡ CODIGO CORRECTO (debe ejecutarse despues de los errores)
+    int ~ a <- 5 !
+    int ~ b <- 10 !
+    int ~ c <- a + b !
+    cout ~ c !
 :|

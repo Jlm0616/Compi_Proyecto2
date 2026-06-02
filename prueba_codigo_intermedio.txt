@@ -1,133 +1,14 @@
 # ===== CODIGO INTERMEDIO =====
 
-fibonacci:
-    param n
-    t0 = 0
-    return t0
-
-potencia:
-    param base
-    param exp
-    t1 = base ^ exp
-    return t1
-
-validar:
-    param x
-    param y
-    param z
-    t2 = 2
-    param x
-    param t2
-    t3 = call potencia, 2
-    t4 = t3 > y
-    t5 = 0
-    t6 = z != t5
-    t7 = t4 == t6
-    return t7
-
 main:
-    t8 = 1
-    t9 = 2
-    t10 = 3
-    t11 = 4
-    t12 = 5
-    t13 = 6
-    t14 = 7
-    t15 = 8
-    t16 = 9
-    mat = alloc 3, 3
-    mat[0][0] = t8
-    mat[0][1] = t9
-    mat[0][2] = t10
-    mat[1][0] = t11
-    mat[1][1] = t12
-    mat[1][2] = t13
-    mat[2][0] = t14
-    mat[2][1] = t15
-    mat[2][2] = t16
-    t17 = 4
-    x = t17
-    t18 = 15
-    y = t18
-    t19 = 0
-    z = t19
-    t20 = 0
-    t21 = 0
-    t22 = mat[t20][t21]
-    t23 = 1
-    t24 = 1
-    t25 = mat[t23][t24]
-    t26 = 2
-    t27 = 2
-    t28 = mat[t26][t27]
-    param t22
-    param t25
-    param t28
-    t29 = call validar, 3
-    r1 = t29
-    param x
-    t30 = call fibonacci, 1
-    a = t30
-    t31 = 34
-    t32 = 2
-    param t31
-    param t32
-    t33 = call potencia, 2
-    b = t33
-    param x
-    t34 = call fibonacci, 1
-    t35 = 0
-    t36 = mat[t34][t35]
-    c = t36
-    t37 = 2
-    param x
-    param t37
-    t38 = call potencia, 2
-    k = t38
-_switch1:
-    tsw1 = 1
-    t39 = 16
-_case1_1:
-    t40 = tsw1 == 0
-    if t40 goto _case1_1_b
-    t41 = k == t39
-    if t41 goto _case1_1_b
-    goto _case1_1_e
-_case1_1_b:
-    tsw1 = 0
-_dowhile1_start:
-    t42 = 1
-    t43 = y - t42
-    y = t43
-    param x
-    param z
-    param z
-    t44 = call validar, 3
-    ifFalse t44 goto L0
-    t45 = false
-    t46 = true
-    t47 = t45 == t46
-    ifFalse t47 goto L1
-    t48 = "fibonacci de y es true"
-    write t48
-    goto L2
-L1:
-    t49 = "fibonacci de y es false"
-    write t49
-L2:
-    goto L3
-L0:
-    t50 = "no valida"
-    write t50
-L3:
-    t51 = 0
-    t52 = y > t51
-    if t52 goto _dowhile1_start
-_dowhile1_end:
-    goto _sw1_end
-_case1_1_e:
-_default1:
-    t53 = "k no es 16"
-    write t53
-_sw1_end:
-# ===== FIN DEL CODIGO INTERMEDIO =====
+    t0 = 10
+    x = t0
+    t1 = 100
+    precio = t1
+    t2 = 5
+    a = t2
+    t3 = 10
+    b = t3
+    t4 = a + b
+    c = t4
+    write c
