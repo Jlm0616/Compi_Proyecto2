@@ -1,25 +1,67 @@
-¡¡ PRUEBA DE RECUPERACION DE ERRORES
+¡¡ Función suma
+int ~ suma <| int ~ a, int ~ b |> |:
+    return ~ a + b !
+:|
 
-empty ~ __main__ ~ <| |>
-|:
-    ¡¡ ERROR LEXICO: caracter no reconocido
-    int ~ x <- 10 ! $ % &
+¡¡ Función resta
+int ~ resta <| int ~ a, int ~ b |> |:
+    return ~ a - b !
+:|
+
+¡¡ Función factorial (recursiva)
+int ~ factorial <| int ~ n |> |:
+    if <| equal <| n, 0 |> |> |:
+        return ~ 1 !
+    :| else |:
+        return ~ n * factorial <| n - 1 |> !
+    :|
+:|
+
+¡¡ Función main
+empty ~ __main__ ~ <| |> |:
+    ¡¡ Declaración de variables
+    int ~ x <- 5!
+    int ~ y <- 10!
+    int ~ z <- 0!
+    string ~ mensaje <- "Resultado: "!
+    bool ~ flag <- true!
+    char ~ letra <- 'A'!
     
-    ¡¡ ERROR SINTACTICO: falta separador '~'
-    int y <- 20 !
+    ¡¡ Asignaciones y operaciones
+    x <- x + 1!
+    y <- y - 2!
+    z <- suma <| x, y |> !
     
-    ¡¡ ERROR SINTACTICO: falta delimitador '!'
-    int ~ z <- 30
+    ¡¡ Estructura if
+    if <| greather_t <| z, 10 |> |> |:
+        cout ~ "z es mayor que 10" !
+        cout ~ z !
+    :| else |:
+        cout ~ "z es menor o igual a 10" !
+        cout ~ z !
+    :|
     
-    ¡¡ ERROR SEMANTICO: variable no declarada
-    w <- x + y !
+    ¡¡ Ciclo do-while
+    do |:
+        x <- x - 1!
+        cout ~ x !
+    :| while <| greather_t <| x, 0 |> |> !
     
-    ¡¡ ERROR SEMANTICO: tipo incompatible
-    float ~ precio <- 100 !
+    ¡¡ Estructura switch
+    switch ~ <| letra |> 
+    |: 
+        case ~ 'A': 
+            cout ~ "Letra A" !
+            break!
+        case ~ 'B': 
+            cout ~ "Letra B" !
+            break!
+        default: 
+            cout ~ "Otra letra" !
+    :|
     
-    ¡¡ CODIGO CORRECTO (debe ejecutarse despues de los errores)
-    int ~ a <- 5 !
-    int ~ b <- 10 !
-    int ~ c <- a + b !
-    cout ~ c !
+    ¡¡ Llamada a función recursiva
+    int ~ fact <- factorial <| 5 |> !
+    cout ~ mensaje !
+    cout ~ fact !
 :|
